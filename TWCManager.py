@@ -681,7 +681,7 @@ def num_cars_charging_now():
     if(debugLevel >= 10):
         print("BUGFIX: Number of cars charging now: " + str(carsCharging))
     
-    publish.single("TWC/carsCharging", payload=carsCharging, hostname=mqttBrokerIP)
+    #publish.single("TWC/carsCharging", payload=carsCharging, hostname=mqttBrokerIP)
 
     return carsCharging
 
