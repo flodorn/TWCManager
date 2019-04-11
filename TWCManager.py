@@ -680,7 +680,7 @@ def num_cars_charging_now():
     if(debugLevel >= 10):
         print("BUGFIX: Number of cars charging now: " + str(carsCharging))
     
-    #publish.single("TWC/carsCharging", payload=carsCharging, hostname=mqttBrokerIP)
+     transmit_mqtt("TWC/carsCharging", carsCharging)
 
     return carsCharging
 
@@ -1886,17 +1886,16 @@ class TWCSlave:
         self.timeLastRx = now
 
         self.reportedAmpsMax = ((heartbeatData[1] << 8) + heartbeatData[2]) / 100
-        #publish.single("TWC/ampsMax/" + (if self.TWCID = 1987:
-	#				 "Garage" 
-	#				 else if self.TWCID = 6486:
-	#				 "Carport")
-	#	       , payload=self.reportedAmpsMax , hostname=mqttBrokerIP)
+         transmit_mqtt("TWC/ampsMax/" + (if (self.TWCID = 1987):
+					 "Garage" 
+					 else if (self.TWCID = 6486):
+					 "Carport"), self.reportedAmpsMax)
     
         self.reportedAmpsActual = ((heartbeatData[3] << 8) + heartbeatData[4]) / 100
-        #publish.single("TWC/power" + self.TWCID, payload=self.reportedAmpsActual , hostname=mqttBrokerIP)
+        transmit_mqtt("TWC/power" + self.TWCID, self.reportedAmpsActual)
 	
         self.reportedState = heartbeatData[0]
-        #publish.single("TWC/state" + self.TWCID, payload=self.reportedState , hostname=mqttBrokerIP)
+        transmit_mqtt("TWC/state" + self.TWCID, self.reportedState)
 	
 
         # self.lastAmpsOffered is initialized to -1.
