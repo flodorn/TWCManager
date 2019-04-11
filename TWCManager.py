@@ -1886,17 +1886,17 @@ class TWCSlave:
         self.timeLastRx = now
 
         self.reportedAmpsMax = ((heartbeatData[1] << 8) + heartbeatData[2]) / 100
-        publish.single("TWC/ampsMax/" + (if self.TWCID = 1987:
-					 "Garage" 
-					 else if self.TWCID = 6486:
-					 "Carport")
-		       , payload=self.reportedAmpsMax , hostname=mqttBrokerIP)
+        #publish.single("TWC/ampsMax/" + (if self.TWCID = 1987:
+	#				 "Garage" 
+	#				 else if self.TWCID = 6486:
+	#				 "Carport")
+	#	       , payload=self.reportedAmpsMax , hostname=mqttBrokerIP)
     
         self.reportedAmpsActual = ((heartbeatData[3] << 8) + heartbeatData[4]) / 100
-        publish.single("TWC/power" + self.TWCID, payload=self.reportedAmpsActual , hostname=mqttBrokerIP)
+        #publish.single("TWC/power" + self.TWCID, payload=self.reportedAmpsActual , hostname=mqttBrokerIP)
 	
         self.reportedState = heartbeatData[0]
-        publish.single("TWC/state" + self.TWCID, payload=self.reportedState , hostname=mqttBrokerIP)
+        #publish.single("TWC/state" + self.TWCID, payload=self.reportedState , hostname=mqttBrokerIP)
 	
 
         # self.lastAmpsOffered is initialized to -1.
