@@ -279,8 +279,7 @@ def transmit_mqtt(mqttChannel, mqttPayload):
     mqttBrokerIP = '192.168.86.97'
     client = mqtt.Client("P1")
     client.connect(mqttBrokerIP) #connect to broker#create new instance
-    client.publish(mqttChannel, mqttPayload, hostname=mqttBrokerIP) 
-
+    client.publish(mqttChannel, mqttPayload) 
 
 
 def time_now():
