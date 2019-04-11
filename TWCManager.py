@@ -681,7 +681,7 @@ def num_cars_charging_now():
     if(debugLevel >= 10):
         print("BUGFIX: Number of cars charging now: " + str(carsCharging))
     
-     transmit_mqtt("TWC/carsCharging", carsCharging)
+    transmit_mqtt("TWC/carsCharging", carsCharging)
 
     return carsCharging
 
