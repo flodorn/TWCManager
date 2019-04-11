@@ -698,8 +698,7 @@ def check_green_energy():
     # rates at certain times of day that typically have certain
     # levels of solar or wind generation. To do so, use the hour
     # and min variables as demonstrated just above this line:
-    #   backgroundTasksQueue.put({'cmd':'
-	')
+    #   backgroundTasksQueue.put({'cmd':'')
     #
     # The curl command used below can be used to communicate
     # with almost any web API, even ones that require POST
