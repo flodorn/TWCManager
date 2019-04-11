@@ -1890,7 +1890,7 @@ class TWCSlave:
         
         TWCIDtoString = ''
         
-	    if(self.TWCID = 1987):
+        if(self.TWCID = 1987):
             TWCIDtoString = 'Garage'
         else if(self.TWCID = 6486):
             TWCIDtoString = 'Carport'
