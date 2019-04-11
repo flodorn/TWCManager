@@ -1886,12 +1886,12 @@ class TWCSlave:
         now = time.time()
         self.timeLastRx = now
         
-        TWCIDtoString = ('TWC/ampsMax/' + hex_str(self.TWCID))
+        TWCIDtoString = str('TWC/ampsMax/' + hex_str(self.TWCID))
 
         self.reportedAmpsMax = ((heartbeatData[1] << 8) + heartbeatData[2]) / 100
         transmit_mqtt(TWCIDtoString, self.reportedAmpsMax)
         if(debugLevel >= 10):
-                    print(time_now() + ': MQTT transfer: self.reportedAmpsMax=' + str(self.reportedAmpsMax))
+                    print(time_now() + ': MQTT transfer: self.reportedAmpsMax=' + str(self.reportedAmpsMax) + TWCIDtoString)
 
     
         self.reportedAmpsActual = ((heartbeatData[3] << 8) + heartbeatData[4]) / 100
