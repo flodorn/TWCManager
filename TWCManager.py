@@ -666,9 +666,6 @@ def total_amps_actual_all_twcs():
     if(debugLevel >= 10):
         print("Total amps all slaves are using: " + str(totalAmps))
         
-    
-    transmit_mqtt("TWC/totalAmps", totalAmps)
-    
     return totalAmps
 
 def num_cars_charging_now():
@@ -681,8 +678,6 @@ def num_cars_charging_now():
     if(debugLevel >= 10):
         print("BUGFIX: Number of cars charging now: " + str(carsCharging))
     
-    transmit_mqtt("TWC/" + "carsCharging", carsCharging)
-
     return carsCharging
 
 
@@ -1886,25 +1881,15 @@ class TWCSlave:
         now = time.time()
         self.timeLastRx = now
         
-        TWCIDtoString = str('TWC/ampsMax/' + hex_str(self.TWCID))
-
         self.reportedAmpsMax = ((heartbeatData[1] << 8) + heartbeatData[2]) / 100
-        transmit_mqtt(TWCIDtoString, self.reportedAmpsMax)
-        if(debugLevel >= 10):
-                    print(time_now() + ': MQTT transfer: self.reportedAmpsMax=' + str(self.reportedAmpsMax) + TWCIDtoString)
-
+        transmit_mqtt('TWC/ampsMax/' + hex_str(self.TWCID), self.reportedAmpsMax)
     
         self.reportedAmpsActual = ((heartbeatData[3] << 8) + heartbeatData[4]) / 100
-        transmit_mqtt("TWC/power/" + hex_str(self.TWCID), self.reportedAmpsActual)
-        if(debugLevel >= 10):
-                    print(time_now() + ': MQTT transfer: self.reportedAmpsActual=' + str(self.reportedAmpsActual))
-	
-	
+        transmit_mqtt('TWC/power/' + hex_str(self.TWCID), self.reportedAmpsActual)
+
         self.reportedState = heartbeatData[0]
-        transmit_mqtt('TWC/state/' + hex_str(self.TWCID), str(self.reportedState))
-        if(debugLevel >= 10):
-                    print(time_now() + ': MQTT transfer: self.reportedState=' + str(self.reportedState))
-	
+        transmit_mqtt('TWC/state/' + hex_str(self.TWCID), self.reportedState)
+
 
         # self.lastAmpsOffered is initialized to -1.
         # If we find it at that value, set it to the current value reported by the
@@ -3206,7 +3191,7 @@ while True:
                             hex_str(data)))
                 
                 else:
-                    msgMatch = re.search(b'\A\xfd\xee(..)(.+?).\Z', msg, re.DOTALL)
+                    msgMatch = re.search(b'\A\xfd\xee(..)(.+?).\Z', lastTWCResponseMsg, re.DOTALL)
                 if(msgMatch and foundMsgMatch == False):
                     # Get last 7 characters of VIN from slave. (usually only 3 digits)
                     #
