@@ -308,10 +308,8 @@ def run_process(cmd):
 def load_settings():
     global debugLevel, settingsFileName, nonScheduledAmpsMax, scheduledAmpsMax, \
            scheduledAmpsStartHour, scheduledAmpsEndHour, \
-           scheduledAmpsDaysBitmap, hourResumeTrackGreenEnergy, kWhDelivered, \
-           carApiBearerToken, carApiRefreshToken, carApiTokenExpireTime, \
-           homeLat, homeLon
-
+           scheduledAmpsDaysBitmap, hourResumeTrackGreenEnergy, kWhDelivered
+           
     try:
         fh = open(settingsFileName, 'r')
 
@@ -363,42 +361,7 @@ def load_settings():
                 kWhDelivered = float(m.group(1))
                 if(debugLevel >= 10):
                     print("load_settings: kWhDelivered set to " + str(kWhDelivered))
-                continue
-
-            m = re.search(r'^\s*carApiBearerToken\s*=\s*(.+)', line, re.MULTILINE)
-            if(m):
-                carApiBearerToken = m.group(1)
-                if(debugLevel >= 10):
-                    print("load_settings: carApiBearerToken set to " + str(carApiBearerToken))
-                continue
-
-            m = re.search(r'^\s*carApiRefreshToken\s*=\s*(.+)', line, re.MULTILINE)
-            if(m):
-                carApiRefreshToken = m.group(1)
-                if(debugLevel >= 10):
-                    print("load_settings: carApiRefreshToken set to " + str(carApiRefreshToken))
-                continue
-
-            m = re.search(r'^\s*carApiTokenExpireTime\s*=\s*(.+)', line, re.MULTILINE)
-            if(m):
-                carApiTokenExpireTime = float(m.group(1))
-                if(debugLevel >= 10):
-                    print("load_settings: carApiTokenExpireTime set to " + str(carApiTokenExpireTime))
-                continue
-
-            m = re.search(r'^\s*homeLat\s*=\s*(.+)', line, re.MULTILINE)
-            if(m):
-                homeLat = float(m.group(1))
-                if(debugLevel >= 10):
-                    print("load_settings: homeLat set to " + str(homeLat))
-                continue
-
-            m = re.search(r'^\s*homeLon\s*=\s*(.+)', line, re.MULTILINE)
-            if(m):
-                homeLon = float(m.group(1))
-                if(debugLevel >= 10):
-                    print("load_settings: homeLon set to " + str(homeLon))
-                continue
+                continue   
 
             print(time_now() + ": load_settings: Unknown setting " + line)
 
@@ -410,9 +373,8 @@ def load_settings():
 def save_settings():
     global debugLevel, settingsFileName, nonScheduledAmpsMax, scheduledAmpsMax, \
            scheduledAmpsStartHour, scheduledAmpsEndHour, \
-           scheduledAmpsDaysBitmap, hourResumeTrackGreenEnergy, kWhDelivered, \
-           carApiBearerToken, carApiRefreshToken, carApiTokenExpireTime, \
-           homeLat, homeLon
+           scheduledAmpsDaysBitmap, hourResumeTrackGreenEnergy, kWhDelivered
+           
 
     fh = open(settingsFileName, 'w')
     fh.write('nonScheduledAmpsMax=' + str(nonScheduledAmpsMax) +
@@ -421,12 +383,7 @@ def save_settings():
             '\nscheduledAmpsEndHour=' + str(scheduledAmpsEndHour) +
             '\nscheduledAmpsDaysBitmap=' + str(scheduledAmpsDaysBitmap) +
             '\nhourResumeTrackGreenEnergy=' + str(hourResumeTrackGreenEnergy) +
-            '\nkWhDelivered=' + str(kWhDelivered) +
-            '\ncarApiBearerToken=' + str(carApiBearerToken) +
-            '\ncarApiRefreshToken=' + str(carApiRefreshToken) +
-            '\ncarApiTokenExpireTime=' + str(int(carApiTokenExpireTime)) +
-            '\nhomeLat=' + str(homeLat) +
-            '\nhomeLon=' + str(homeLon)
+            '\nkWhDelivered=' + str(kWhDelivered)
             )
 
     fh.close()
@@ -955,7 +912,7 @@ class TWCSlave:
         #                          (20.00A). 01 byte indicates Master is plugged
         #                          in to a car.)
         global fakeTWCID, overrideMasterHeartbeatData, debugLevel, \
-               timeLastTx, carApiVehicles
+               timeLastTx
 
         if(len(overrideMasterHeartbeatData) >= 7):
             self.masterHeartbeatData = overrideMasterHeartbeatData
@@ -1760,12 +1717,7 @@ while True:
                 webResponseMsg = ''
                 numPackets = 0
                 if(webMsg == b'getStatus'):
-                    needCarApiBearerToken = False
-                    if(carApiBearerToken == ''):
-                        for i in range(0, len(slaveTWCRoundRobin)):
-                            if(slaveTWCRoundRobin[i].protocolVersion == 2):
-                                needCarApiBearerToken = True
-
+                    
                     webResponseMsg = (
                         "%.2f" % (maxAmpsToDivideAmongSlaves) +
                         '`' + "%.2f" % (wiringMaxAmpsAllTWCs) +
@@ -1780,8 +1732,6 @@ while True:
                         '`' + str(scheduledAmpsDaysBitmap) +
                         '`' + "%02d:%02d" % (int(hourResumeTrackGreenEnergy),
                                              int((hourResumeTrackGreenEnergy % 1) * 60)) +
-                        # Send 1 if we need an email/password entered for car api, otherwise send 0
-                        '`' + ('1' if needCarApiBearerToken else '0') +
                         '`' + str(len(slaveTWCRoundRobin))
                         )
 
@@ -1867,16 +1817,7 @@ while True:
                         + ', greenEnergyAmpsOffset=' + str(greenEnergyAmpsOffset)
                         + ', debugLevel=' + str(debugLevel)
                         + '\n')
-                    webResponseMsg += (
-                        'carApiStopAskingToStartCharging=' + str(carApiStopAskingToStartCharging)
-                        + '\ncarApiLastStartOrStopChargeTime=' + str(time.strftime("%m-%d-%y %H:%M:%S", time.localtime(carApiLastStartOrStopChargeTime)))
-                        + '\ncarApiLastErrorTime=' + str(time.strftime("%m-%d-%y %H:%M:%S", time.localtime(carApiLastErrorTime)))
-                        + '\ncarApiTokenExpireTime=' + str(time.strftime("%m-%d-%y %H:%M:%S", time.localtime(carApiTokenExpireTime)))
-                        + '\n'
-                        )
-
-                    for vehicle in carApiVehicles:
-                        webResponseMsg += str(vehicle.__dict__) + '\n'
+                    
 
                     webResponseMsg += 'slaveTWCRoundRobin:\n'
                     for slaveTWC in slaveTWCRoundRobin:
