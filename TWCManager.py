@@ -109,7 +109,6 @@ import serial
 import time
 import re
 import subprocess
-import queue
 import random
 import math
 import struct
@@ -681,603 +680,6 @@ def num_cars_charging_now():
     return carsCharging
 
 
-def car_api_available(email = None, password = None, charge = None):
-    global debugLevel, carApiLastErrorTime, carApiErrorRetryMins, \
-           carApiTransientErrors, carApiBearerToken, carApiRefreshToken, \
-           carApiTokenExpireTime, carApiVehicles
-
-    now = time.time()
-    apiResponseDict = {}
-
-    if(now - carApiLastErrorTime < carApiErrorRetryMins*60):
-        # It's been under carApiErrorRetryMins minutes since the car API
-        # generated an error. To keep strain off Tesla's API servers, wait
-        # carApiErrorRetryMins mins till we try again. This delay could be
-        # reduced if you feel the need. It's mostly here to deal with unexpected
-        # errors that are hopefully transient.
-        # https://teslamotorsclub.com/tmc/threads/model-s-rest-api.13410/page-114#post-2732052
-        # says he tested hammering the servers with requests as fast as possible
-        # and was automatically blacklisted after 2 minutes. Waiting 30 mins was
-        # enough to clear the blacklist. So at this point it seems Tesla has
-        # accepted that third party apps use the API and deals with bad behavior
-        # automatically.
-        if(debugLevel >= 11):
-            print(time_now() + ': Car API disabled for ' +
-                  str(int(carApiErrorRetryMins*60 - (now - carApiLastErrorTime))) +
-                  ' more seconds due to recent error.')
-        return False
-
-    # Tesla car API info comes from https://timdorr.docs.apiary.io/
-    if(carApiBearerToken == '' or carApiTokenExpireTime - now < 30*24*60*60):
-        cmd = None
-        apiResponse = b''
-
-        # If we don't have a bearer token or our refresh token will expire in
-        # under 30 days, get a new bearer token.  Refresh tokens expire in 45
-        # days when first issued, so we'll get a new token every 15 days.
-        if(carApiRefreshToken != ''):
-            cmd = 'curl -s -m 60 -X POST -H "accept: application/json" -H "Content-Type: application/json" -d \'' + \
-                  json.dumps({'grant_type': 'refresh_token', \
-                              'client_id': '81527cff06843c8634fdc09e8ac0abefb46ac849f38fe1e431c2ef2106796384', \
-                              'client_secret': 'c7257eb71a564034f9419ee651c7d0e5f7aa6bfbd18bafb5c5c033b093bb2fa3', \
-                              'refresh_token': carApiRefreshToken }) + \
-                  '\' "https://owner-api.teslamotors.com/oauth/token"'
-        elif(email != None and password != None):
-            cmd = 'curl -s -m 60 -X POST -H "accept: application/json" -H "Content-Type: application/json" -d \'' + \
-                  json.dumps({'grant_type': 'password', \
-                              'client_id': '81527cff06843c8634fdc09e8ac0abefb46ac849f38fe1e431c2ef2106796384', \
-                              'client_secret': 'c7257eb71a564034f9419ee651c7d0e5f7aa6bfbd18bafb5c5c033b093bb2fa3', \
-                              'email': email, 'password': password }) + \
-                  '\' "https://owner-api.teslamotors.com/oauth/token"'
-
-        if(cmd != None):
-            if(debugLevel >= 2):
-                # Hide car password in output
-                cmdRedacted = re.sub(r'("password": )"[^"]+"', r'\1[HIDDEN]', cmd)
-                print(time_now() + ': Car API cmd', cmdRedacted)
-            apiResponse = run_process(cmd)
-            # Example response:
-            # b'{"access_token":"4720d5f980c9969b0ca77ab39399b9103adb63ee832014fe299684201929380","token_type":"bearer","expires_in":3888000,"refresh_token":"110dd4455437ed351649391a3425b411755a213aa815171a2c6bfea8cc1253ae","created_at":1525232970}'
-
-        try:
-            apiResponseDict = json.loads(apiResponse.decode('ascii'))
-        except json.decoder.JSONDecodeError:
-            pass
-
-        try:
-            if(debugLevel >= 4):
-                print(time_now() + ': Car API auth response', apiResponseDict, '\n')
-            carApiBearerToken = apiResponseDict['access_token']
-            carApiRefreshToken = apiResponseDict['refresh_token']
-            carApiTokenExpireTime = now + apiResponseDict['expires_in']
-        except KeyError:
-            print(time_now() + ": ERROR: Can't access Tesla car via API.  Please log in again via web interface.")
-            carApiLastErrorTime = now
-            # Instead of just setting carApiLastErrorTime, erase tokens to
-            # prevent further authorization attempts until user enters password
-            # on web interface. I feel this is safer than trying to log in every
-            # ten minutes with a bad token because Tesla might decide to block
-            # remote access to your car after too many authorization errors.
-            carApiBearerToken = ''
-            carApiRefreshToken = ''
-
-        save_settings()
-
-    if(carApiBearerToken != ''):
-        if(len(carApiVehicles) < 1):
-            cmd = 'curl -s -m 60 -H "accept: application/json" -H "Authorization:Bearer ' + \
-                  carApiBearerToken + \
-                  '" "https://owner-api.teslamotors.com/api/1/vehicles"'
-            if(debugLevel >= 8):
-                print(time_now() + ': Car API cmd', cmd)
-            try:
-                apiResponseDict = json.loads(run_process(cmd).decode('ascii'))
-            except json.decoder.JSONDecodeError:
-                pass
-
-            try:
-                if(debugLevel >= 4):
-                    print(time_now() + ': Car API vehicle list', apiResponseDict, '\n')
-
-                for i in range(0, apiResponseDict['count']):
-                    carApiVehicles.append(CarApiVehicle(apiResponseDict['response'][i]['id']))
-            except (KeyError, TypeError):
-                # This catches cases like trying to access
-                # apiResponseDict['response'] when 'response' doesn't exist in
-                # apiResponseDict.
-                print(time_now() + ": ERROR: Can't get list of vehicles via Tesla car API.  Will try again in "
-                      + str(carApiErrorRetryMins) + " minutes.")
-                carApiLastErrorTime = now
-                return False
-
-        if(len(carApiVehicles) > 0):
-            # Wake cars if needed
-            needSleep = False
-            for vehicle in carApiVehicles:
-                if(charge == True and vehicle.stopAskingToStartCharging):
-                    if(debugLevel >= 8):
-                        print(time_now() + ": Don't charge vehicle " + str(vehicle.ID)
-                              + " because vehicle.stopAskingToStartCharging == True")
-                    continue
-
-                if(now - vehicle.lastErrorTime < carApiErrorRetryMins*60):
-                    # It's been under carApiErrorRetryMins minutes since the car
-                    # API generated an error on this vehicle. Don't send it more
-                    # commands yet.
-                    if(debugLevel >= 8):
-                        print(time_now() + ": Don't send commands to vehicle " + str(vehicle.ID)
-                              + " because it returned an error in the last "
-                              + str(carApiErrorRetryMins) + " minutes.")
-                    continue
-
-                if(vehicle.ready()):
-                    continue
-
-                if(now - vehicle.lastWakeAttemptTime <= vehicle.delayNextWakeAttempt):
-                    if(debugLevel >= 10):
-                        print(time_now() + ": car_api_available returning False because we are still delaying "
-                              + str(delayNextWakeAttempt) + " seconds after the last failed wake attempt.")
-                    return False
-
-                # It's been delayNextWakeAttempt seconds since we last failed to
-                # wake the car, or it's never been woken. Wake it.
-                vehicle.lastWakeAttemptTime = now
-                cmd = 'curl -s -m 60 -X POST -H "accept: application/json" -H "Authorization:Bearer ' + \
-                      carApiBearerToken + \
-                      '" "https://owner-api.teslamotors.com/api/1/vehicles/' + \
-                      str(vehicle.ID) + '/wake_up"'
-                if(debugLevel >= 8):
-                    print(time_now() + ': Car API cmd', cmd)
-
-                try:
-                    apiResponseDict = json.loads(run_process(cmd).decode('ascii'))
-                except json.decoder.JSONDecodeError:
-                    pass
-
-                state = 'error'
-                try:
-                    if(debugLevel >= 4):
-                        print(time_now() + ': Car API wake car response', apiResponseDict, '\n')
-
-                    state = apiResponseDict['response']['state']
-
-                except (KeyError, TypeError):
-                    # This catches unexpected cases like trying to access
-                    # apiResponseDict['response'] when 'response' doesn't exist
-                    # in apiResponseDict.
-                    state = 'error'
-
-                if(state == 'online'):
-                    # With max power saving settings, car will almost always
-                    # report 'asleep' or 'offline' the first time it's sent
-                    # wake_up.  Rarely, it returns 'online' on the first wake_up
-                    # even when the car has not been contacted in a long while.
-                    # I suspect that happens when we happen to query the car
-                    # when it periodically awakens for some reason.
-                    vehicle.firstWakeAttemptTime = 0
-                    vehicle.delayNextWakeAttempt = 0
-                    # Don't alter vehicle.lastWakeAttemptTime because
-                    # vehicle.ready() uses it to return True if the last wake
-                    # was under 2 mins ago.
-                    needSleep = True
-                else:
-                    if(vehicle.firstWakeAttemptTime == 0):
-                        vehicle.firstWakeAttemptTime = now
-
-                    if(state == 'asleep' or state == 'waking'):
-                        if(now - vehicle.firstWakeAttemptTime <= 10*60):
-                            # http://visibletesla.com has a 'force wakeup' mode
-                            # that sends wake_up messages once every 5 seconds
-                            # 15 times. This generally manages to wake my car if
-                            # it's returning 'asleep' state, but I don't think
-                            # there is any reason for 5 seconds and 15 attempts.
-                            # The car did wake in two tests with that timing,
-                            # but on the third test, it had not entered online
-                            # mode by the 15th wake_up and took another 10+
-                            # seconds to come online. In general, I hear relays
-                            # in the car clicking a few seconds after the first
-                            # wake_up but the car does not enter 'waking' or
-                            # 'online' state for a random period of time. I've
-                            # seen it take over one minute, 20 sec.
-                            #
-                            # I interpret this to mean a car in 'asleep' mode is
-                            # still receiving car API messages and will start
-                            # to wake after the first wake_up, but it may take
-                            # awhile to finish waking up. Therefore, we try
-                            # waking every 30 seconds for the first 10 mins.
-                            vehicle.delayNextWakeAttempt = 30;
-                        elif(now - vehicle.firstWakeAttemptTime <= 70*60):
-                            # Cars in 'asleep' state should wake within a
-                            # couple minutes in my experience, so we should
-                            # never reach this point. If we do, try every 5
-                            # minutes for the next hour.
-                            vehicle.delayNextWakeAttempt = 5*60;
-                        else:
-                            # Car hasn't woken for an hour and 10 mins. Try
-                            # again in 15 minutes. We'll show an error about
-                            # reaching this point later.
-                            vehicle.delayNextWakeAttempt = 15*60;
-                    elif(state == 'offline'):
-                        if(now - vehicle.firstWakeAttemptTime <= 31*60):
-                            # A car in offline state is presumably not connected
-                            # wirelessly so our wake_up command will not reach
-                            # it. Instead, the car wakes itself every 20-30
-                            # minutes and waits some period of time for a
-                            # message, then goes back to sleep. I'm not sure
-                            # what the period of time is, so I tried sending
-                            # wake_up every 55 seconds for 16 minutes but the
-                            # car failed to wake.
-                            # Next I tried once every 25 seconds for 31 mins.
-                            # This worked after 19.5 and 19.75 minutes in 2
-                            # tests but I can't be sure the car stays awake for
-                            # 30secs or if I just happened to send a command
-                            # during a shorter period of wakefulness.
-                            vehicle.delayNextWakeAttempt = 25;
-
-                            # I've run tests sending wake_up every 10-30 mins to
-                            # a car in offline state and it will go hours
-                            # without waking unless you're lucky enough to hit
-                            # it in the brief time it's waiting for wireless
-                            # commands. I assume cars only enter offline state
-                            # when set to max power saving mode, and even then,
-                            # they don't always enter the state even after 8
-                            # hours of no API contact or other interaction. I've
-                            # seen it remain in 'asleep' state when contacted
-                            # after 16.5 hours, but I also think I've seen it in
-                            # offline state after less than 16 hours, so I'm not
-                            # sure what the rules are or if maybe Tesla contacts
-                            # the car periodically which resets the offline
-                            # countdown.
-                            #
-                            # I've also seen it enter 'offline' state a few
-                            # minutes after finishing charging, then go 'online'
-                            # on the third retry every 55 seconds.  I suspect
-                            # that might be a case of the car briefly losing
-                            # wireless connection rather than actually going
-                            # into a deep sleep.
-                            # 'offline' may happen almost immediately if you
-                            # don't have the charger plugged in.
-                    else:
-                        # Handle 'error' state.
-                        if(now - vehicle.firstWakeAttemptTime <= 60*60):
-                            # We've tried to wake the car for less than an
-                            # hour.
-                            foundKnownError = False
-                            if('error' in apiResponseDict):
-                                error = apiResponseDict['error']
-                                for knownError in carApiTransientErrors:
-                                    if(knownError == error[0:len(knownError)]):
-                                        foundKnownError = True
-                                        break
-
-                            if(foundKnownError):
-                                # I see these errors often enough that I think
-                                # it's worth re-trying in 1 minute rather than
-                                # waiting 5 minutes for retry in the standard
-                                # error handler.
-                                vehicle.delayNextWakeAttempt = 60;
-                            else:
-                                # We're in an unexpected state. This could be caused
-                                # by the API servers being down, car being out of
-                                # range, or by something I can't anticipate. Try
-                                # waking the car every 5 mins.
-                                vehicle.delayNextWakeAttempt = 5*60;
-                        else:
-                            # Car hasn't woken for over an hour. Try again
-                            # in 15 minutes. We'll show an error about this
-                            # later.
-                            vehicle.delayNextWakeAttempt = 15*60;
-
-                    if(debugLevel >= 1):
-                        if(state == 'error'):
-                            print(time_now() + ": Car API wake car failed with unknown response.  " \
-                                "Will try again in "
-                                + str(vehicle.delayNextWakeAttempt) + " seconds.")
-                        else:
-                            print(time_now() + ": Car API wake car failed.  State remains: '"
-                                + state + "'.  Will try again in "
-                                + str(vehicle.delayNextWakeAttempt) + " seconds.")
-
-                if(vehicle.firstWakeAttemptTime > 0
-                   and now - vehicle.firstWakeAttemptTime > 60*60):
-                    # It should never take over an hour to wake a car.  If it
-                    # does, ask user to report an error.
-                    print(time_now() + ": ERROR: We have failed to wake a car from '"
-                        + state + "' state for %.1f hours.\n" \
-                          "Please private message user CDragon at " \
-                          "http://teslamotorsclub.com with a copy of this error. " \
-                          "Also include this: %s" % (
-                          ((now - vehicle.firstWakeAttemptTime) / 60 / 60),
-                          str(apiResponseDict)))
-
-    if(now - carApiLastErrorTime < carApiErrorRetryMins*60 or carApiBearerToken == ''):
-        if(debugLevel >= 8):
-            print(time_now() + ": car_api_available returning False because of recent carApiLasterrorTime "
-                + str(now - carApiLastErrorTime) + " or empty carApiBearerToken '"
-                + carApiBearerToken + "'")
-        return False
-
-    if(debugLevel >= 8):
-        # We return True to indicate there was no error that prevents running
-        # car API commands and that we successfully got a list of vehicles.
-        # True does not indicate that any vehicle is actually awake and ready
-        # for commands.
-        print(time_now() + ": car_api_available returning True")
-
-    if(needSleep):
-        # If you send charge_start/stop less than 1 second after calling
-        # update_location(), the charge command usually returns:
-        #   {'response': {'result': False, 'reason': 'could_not_wake_buses'}}
-        # I'm not sure if the same problem exists when sending commands too
-        # quickly after we send wake_up.  I haven't seen a problem sending a
-        # command immediately, but it seems safest to sleep 5 seconds after
-        # waking before sending a command.
-        time.sleep(5);
-
-    return True
-
-def car_api_charge(charge):
-    # Do not call this function directly.  Call by using background thread:
-    # queue_background_task({'cmd':'charge', 'charge':<True/False>})
-    global debugLevel, carApiLastErrorTime, carApiErrorRetryMins, \
-           carApiTransientErrors, carApiVehicles, carApiLastStartOrStopChargeTime, \
-           homeLat, homeLon, onlyChargeMultiCarsAtHome
-
-    now = time.time()
-    apiResponseDict = {}
-    if(not charge):
-        # Whenever we are going to tell vehicles to stop charging, set
-        # vehicle.stopAskingToStartCharging = False on all vehicles.
-        for vehicle in carApiVehicles:
-            vehicle.stopAskingToStartCharging = False
-
-    if(now - carApiLastStartOrStopChargeTime < 60):
-        # Don't start or stop more often than once a minute
-        if(debugLevel >= 8):
-            print(time_now() + ': car_api_charge return because under 60 sec since last carApiLastStartOrStopChargeTime')
-        return 'error'
-
-    if(car_api_available(charge = charge) == False):
-        if(debugLevel >= 8):
-            print(time_now() + ': car_api_charge return because car_api_available() == False')
-        return 'error'
-
-    startOrStop = 'start' if charge else 'stop'
-    result = 'success'
-    if(debugLevel >= 8):
-        print("startOrStop is set to " + str(startOrStop))
-    
-    for vehicle in carApiVehicles:
-        if(charge and vehicle.stopAskingToStartCharging):
-            if(debugLevel >= 8):
-                print(time_now() + ": Don't charge vehicle " + str(vehicle.ID)
-                      + " because vehicle.stopAskingToStartCharging == True")
-            continue
-
-        if(vehicle.ready() == False):
-            continue
-
-        # Only update carApiLastStartOrStopChargeTime if car_api_available() managed
-        # to wake cars.  Setting this prevents any command below from being sent
-        # more than once per minute.
-        carApiLastStartOrStopChargeTime = now
-
-        if(onlyChargeMultiCarsAtHome and len(carApiVehicles) > 1):
-            # When multiple cars are enrolled in the car API, only start/stop
-            # charging cars parked at home.
-
-            if(vehicle.update_location() == False):
-                result = 'error'
-                continue
-
-            if(homeLat == 10000):
-                if(debugLevel >= 1):
-                    print(time_now() + ": Home location for vehicles has never been set.  " +
-                        "We'll assume home is where we found the first vehicle currently parked.  " +
-                        "Home set to lat=" + str(vehicle.lat) + ", lon=" +
-                        str(vehicle.lon))
-                homeLat = vehicle.lat
-                homeLon = vehicle.lon
-                save_settings()
-
-            # 1 lat or lon = ~364488.888 feet. The exact feet is different depending
-            # on the value of latitude, but this value should be close enough for
-            # our rough needs.
-            # 1/364488.888 * 10560 = 0.0289.
-            # So if vehicle is within 0289 lat and lon of homeLat/Lon,
-            # it's within ~10560 feet (2 miles) of home and we'll consider it to be
-            # at home.
-            # I originally tried using 0.00548 (~2000 feet) but one night the car
-            # consistently reported being 2839 feet away from home despite being
-            # parked in the exact spot I always park it.  This is very odd because
-            # GPS is supposed to be accurate to within 12 feet.  Tesla phone app
-            # also reports the car is not at its usual address.  I suspect this
-            # is another case of a bug that's been causing car GPS to freeze  the
-            # last couple months.
-            if(abs(homeLat - vehicle.lat) > 0.0289
-               or abs(homeLon - vehicle.lon) > 0.0289):
-                # Vehicle is not at home, so don't change its charge state.
-                if(debugLevel >= 1):
-                    print(time_now() + ': Vehicle ID ' + str(vehicle.ID) +
-                          ' is not at home.  Do not ' + startOrStop + ' charge.')
-                continue
-
-            # If you send charge_start/stop less than 1 second after calling
-            # update_location(), the charge command usually returns:
-            #   {'response': {'result': False, 'reason': 'could_not_wake_buses'}}
-            # Waiting 2 seconds seems to consistently avoid the error, but let's
-            # wait 5 seconds in case of hardware differences between cars.
-            time.sleep(5)
-
-        cmd = 'curl -s -m 60 -X POST -H "accept: application/json" -H "Authorization:Bearer ' + \
-              carApiBearerToken + \
-              '" "https://owner-api.teslamotors.com/api/1/vehicles/' + \
-            str(vehicle.ID) + '/command/charge_' + startOrStop + '"'
-
-        # Retry up to 3 times on certain errors.
-        for retryCount in range(0, 3):
-            if(debugLevel >= 8):
-                print(time_now() + ': Car API cmd', cmd)
-
-            try:
-                apiResponseDict = json.loads(run_process(cmd).decode('ascii'))
-            except json.decoder.JSONDecodeError:
-                pass
-
-            try:
-                if(debugLevel >= 4):
-                    print(time_now() + ': Car API TWC' + str(vehicle.ID) + ': ' + startOrStop + \
-                          ' charge response', apiResponseDict, '\n')
-                # Responses I've seen in apiResponseDict:
-                # Car is done charging:
-                #   {'response': {'result': False, 'reason': 'complete'}}
-                # Car wants to charge but may not actually be charging. Oddly, this
-                # is the state reported when car is not plugged in to a charger!
-                # It's also reported when plugged in but charger is not offering
-                # power or even when the car is in an error state and refuses to
-                # charge.
-                #   {'response': {'result': False, 'reason': 'charging'}}
-                # Car not reachable:
-                #   {'response': None, 'error_description': '', 'error': 'vehicle unavailable: {:error=>"vehicle unavailable:"}'}
-                # This weird error seems to happen randomly and re-trying a few
-                # seconds later often succeeds:
-                #   {'response': {'result': False, 'reason': 'could_not_wake_buses'}}
-                # I've seen this a few times on wake_up, charge_start, and drive_state:
-                #   {'error': 'upstream internal error', 'response': None, 'error_description': ''}
-                # I've seen this once on wake_up:
-                #   {'error': 'operation_timedout for txid `4853e3ad74de12733f8cc957c9f60040`}', 'response': None, 'error_description': ''}
-                # Start or stop charging success:
-                #   {'response': {'result': True, 'reason': ''}}
-                if(apiResponseDict['response'] == None):
-                    if('error' in apiResponseDict):
-                        foundKnownError = False
-                        error = apiResponseDict['error']
-                        for knownError in carApiTransientErrors:
-                            if(knownError == error[0:len(knownError)]):
-                                # I see these errors often enough that I think
-                                # it's worth re-trying in 1 minute rather than
-                                # waiting carApiErrorRetryMins minutes for retry
-                                # in the standard error handler.
-                                if(debugLevel >= 1):
-                                    print(time_now() + ": Car API returned '"
-                                          + error
-                                          + "' when trying to start charging.  Try again in 1 minute.")
-                                time.sleep(60)
-                                foundKnownError = True
-                                break
-                        if(foundKnownError):
-                            continue
-
-                    # This generally indicates a significant error like 'vehicle
-                    # unavailable', but it's not something I think the caller can do
-                    # anything about, so return generic 'error'.
-                    result = 'error'
-                    # Don't send another command to this vehicle for
-                    # carApiErrorRetryMins mins.
-                    vehicle.lastErrorTime = now
-                elif(apiResponseDict['response']['result'] == False):
-                    if(charge):
-                        reason = apiResponseDict['response']['reason']
-                        if(reason == 'complete' or reason == 'charging'):
-                            # We asked the car to charge, but it responded that
-                            # it can't, either because it's reached target
-                            # charge state (reason == 'complete'), or it's
-                            # already trying to charge (reason == 'charging').
-                            # In these cases, it won't help to keep asking it to
-                            # charge, so set vehicle.stopAskingToStartCharging =
-                            # True.
-                            #
-                            # Remember, this only means at least one car in the
-                            # list wants us to stop asking and we don't know
-                            # which car in the list is connected to our TWC.
-                            if(debugLevel >= 1):
-                                print(time_now() + ': Vehicle ' + str(vehicle.ID)
-                                      + ' is done charging or already trying to charge.  Stop asking to start charging.')
-                            vehicle.stopAskingToStartCharging = True
-                        else:
-                            # Car was unable to charge for some other reason, such
-                            # as 'could_not_wake_buses'.
-                            if(reason == 'could_not_wake_buses'):
-                                # This error often happens if you call
-                                # charge_start too quickly after another command
-                                # like drive_state. Even if you delay 5 seconds
-                                # between the commands, this error still comes
-                                # up occasionally. Retrying often succeeds, so
-                                # wait 5 secs and retry.
-                                # If all retries fail, we'll try again in a
-                                # minute because we set
-                                # carApiLastStartOrStopChargeTime = now earlier.
-                                time.sleep(5)
-                                continue
-                            else:
-                                # Start or stop charge failed with an error I
-                                # haven't seen before, so wait
-                                # carApiErrorRetryMins mins before trying again.
-                                print(time_now() + ': ERROR "' + reason + '" when trying to ' +
-                                      startOrStop + ' car charging via Tesla car API.  Will try again later.' +
-                                      "\nIf this error persists, please private message user CDragon at http://teslamotorsclub.com " \
-                                      "with a copy of this error.")
-                                result = 'error'
-                                vehicle.lastErrorTime = now
-
-            except (KeyError, TypeError):
-                # This catches cases like trying to access
-                # apiResponseDict['response'] when 'response' doesn't exist in
-                # apiResponseDict.
-                print(time_now() + ': ERROR: Failed to ' + startOrStop
-                      + ' car charging via Tesla car API.  Will try again later.')
-                vehicle.lastErrorTime = now
-            break
-
-    if(debugLevel >= 1 and carApiLastStartOrStopChargeTime == now):
-        print(time_now() + ': Car API TWC' + str(vehicle.ID) + ': ' + startOrStop + ' charge result: ' + result)
-
-    return result
-
-
-def queue_background_task(task):
-    global backgroundTasksQueue, backgroundTasksCmds
-    if(task['cmd'] in backgroundTasksCmds):
-        # Some tasks, like cmd='charge', will be called once per second until
-        # a charge starts or we determine the car is done charging.  To avoid
-        # wasting memory queing up a bunch of these tasks when we're handling
-        # a charge cmd already, don't queue two of the same task.
-        return
-
-    # Insert task['cmd'] in backgroundTasksCmds to prevent queuing another
-    # task['cmd'] till we've finished handling this one.
-    backgroundTasksCmds[task['cmd']] = True
-
-    # Queue the task to be handled by background_tasks_thread.
-    backgroundTasksQueue.put(task)
-
-
-def background_tasks_thread():
-    global backgroundTasksQueue, backgroundTasksCmds, carApiLastErrorTime
-
-    while True:
-        task = backgroundTasksQueue.get()
-
-        if(task['cmd'] == 'charge'):
-            # car_api_charge does nothing if it's been under 60 secs since it
-            # was last used so we shouldn't have to worry about calling this
-            # too frequently.
-            car_api_charge(task['charge'])
-        elif(task['cmd'] == 'carApiEmailPassword'):
-            carApiLastErrorTime = 0
-            car_api_available(task['email'], task['password'])
-        elif(task['cmd'] == 'checkGreenEnergy'):
-            check_green_energy()
-
-        # Delete task['cmd'] from backgroundTasksCmds such that
-        # queue_background_task() can queue another task['cmd'] in the future.
-        del backgroundTasksCmds[task['cmd']]
-
-        # task_done() must be called to let the queue know the task is finished.
-        # backgroundTasksQueue.join() can then be used to block until all tasks
-        # in the queue are done.
-        backgroundTasksQueue.task_done()
-
 def check_green_energy():
     global debugLevel, maxAmpsToDivideAmongSlaves, greenEnergyAmpsOffset, \
            minAmpsPerTWC, backgroundTasksLock
@@ -1296,7 +698,8 @@ def check_green_energy():
     # rates at certain times of day that typically have certain
     # levels of solar or wind generation. To do so, use the hour
     # and min variables as demonstrated just above this line:
-    #   backgroundTasksQueue.put({'cmd':'checkGreenEnergy')
+    #   backgroundTasksQueue.put({'cmd':'
+	')
     #
     # The curl command used below can be used to communicate
     # with almost any web API, even ones that require POST
@@ -1321,8 +724,6 @@ def check_green_energy():
     # Use backgroundTasksLock to prevent changing maxAmpsToDivideAmongSlaves
     # if the main thread is in the middle of examining and later using
     # that value.
-    backgroundTasksLock.acquire()
-
     # Watts = Volts * Amps
     # Car charges at 240 volts in North America so we figure
     # out how many amps * 240 = solarW and limit the car to
@@ -1340,9 +741,6 @@ def check_green_energy():
                  (time_now(), solarW, (solarW / 230 / 3),
                  totalAmpsUsed, maxAmpsToDivideAmongSlaves,
                  minAmpsPerTWC))
-
-    backgroundTasksLock.release()
-
 
 #
 # End functions
@@ -1736,15 +1134,13 @@ class TWCSlave:
                         print(time_now() + ': BUGFIX: Now.tm_hour < 7 or ltNow.tm_hour >= 21')
 
                 else:
-                    queue_background_task({'cmd':'checkGreenEnergy'})
+                    check_green_energy()
 
-                    if(debugLevel >= 10):
-                        print(time_now() + ': BUGFIX: queue_background_task checkGreenEnergy')
 
         # Use backgroundTasksLock to prevent the background thread from changing
         # the value of maxAmpsToDivideAmongSlaves after we've checked the value
         # is safe to use but before we've used it.
-        backgroundTasksLock.acquire()
+
 
         if(maxAmpsToDivideAmongSlaves > wiringMaxAmpsAllTWCs):
             # Never tell the slaves to draw more amps than the physical charger
@@ -1781,7 +1177,6 @@ class TWCSlave:
                   + " with " + str(numCarsCharging)
                   + " cars charging.")
 
-        backgroundTasksLock.release()
 
         minAmpsToOffer = minAmpsPerTWC
         if(self.minAmpsTWCSupports > minAmpsToOffer):
@@ -2224,34 +1619,6 @@ webMsgResult = 0
 timeTo0Aafter06 = 0
 timeToRaise2A = 0
 
-carApiLastErrorTime = 0
-carApiBearerToken = ''
-carApiRefreshToken = ''
-carApiTokenExpireTime = time.time()
-carApiLastStartOrStopChargeTime = 0
-carApiVehicles = []
-
-# Transient errors are ones that usually disappear if we retry the car API
-# command a minute or less later.
-# 'vehicle unavailable:' sounds like it implies the car is out of connection
-# range, but I once saw it returned by drive_state after wake_up returned
-# 'online'. In that case, the car is reacahble, but drive_state failed for some
-# reason. Thus we consider it a transient error.
-# Error strings below need only match the start of an error response such as:
-# {'response': None, 'error_description': '',
-# 'error': 'operation_timedout for txid `4853e3ad74de12733f8cc957c9f60040`}'}
-carApiTransientErrors = ['upstream internal error', 'operation_timedout',
-'vehicle unavailable']
-
-# Define minutes between retrying non-transient errors.
-carApiErrorRetryMins = 10
-
-homeLat = 10000
-homeLon = 10000
-
-backgroundTasksQueue = queue.Queue()
-backgroundTasksCmds = {}
-backgroundTasksLock = threading.Lock()
 
 ser = None
 ser = serial.Serial(rs485Adapter, baud, timeout=0)
@@ -2268,14 +1635,6 @@ ser = serial.Serial(rs485Adapter, baud, timeout=0)
 #
 
 load_settings()
-
-
-# Create a background thread to handle tasks that take too long on the main
-# thread.  For a primer on threads in Python, see:
-# http://www.laurentluce.com/posts/python-threads-synchronization-locks-rlocks-semaphores-conditions-events-and-queues/
-backgroundTasksThread = threading.Thread(target=background_tasks_thread, args = ())
-backgroundTasksThread.daemon = True
-backgroundTasksThread.start()
 
 
 # Create an IPC (Interprocess Communication) message queue that we can
@@ -2955,7 +2314,6 @@ while True:
 # Note that there is no such thing as backgroundTasksThread.stop(). Because we
 # set the thread type to daemon, it will be automatically killed when we exit
 # this program.
-backgroundTasksQueue.join()
 
 ser.close()
 
