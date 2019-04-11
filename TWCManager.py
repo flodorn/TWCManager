@@ -278,6 +278,11 @@ slaveSign = bytearray(b'\x77')
 # Begin functions
 #
 
+client = mqtt.Client("P1") #create new instance
+client.connect(mqttBrokerIP) #connect to broker
+client.publish("TWC/powerusage","999")
+
+
 def time_now():
     global displayMilliseconds
     return(datetime.now().strftime("%H:%M:%S" + (
@@ -1881,7 +1886,11 @@ class TWCSlave:
         self.timeLastRx = now
 
         self.reportedAmpsMax = ((heartbeatData[1] << 8) + heartbeatData[2]) / 100
-        publish.single("TWC/ampsMax" + self.TWCID, payload=self.reportedAmpsMax , hostname=mqttBrokerIP)
+        publish.single("TWC/ampsMax/" + (if self.TWCID = 1987:
+					 "Garage" 
+					 else if self.TWCID = 6486:
+					 "Carport")
+		       , payload=self.reportedAmpsMax , hostname=mqttBrokerIP)
     
         self.reportedAmpsActual = ((heartbeatData[3] << 8) + heartbeatData[4]) / 100
         publish.single("TWC/power" + self.TWCID, payload=self.reportedAmpsActual , hostname=mqttBrokerIP)
