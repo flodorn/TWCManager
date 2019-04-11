@@ -1887,7 +1887,7 @@ class TWCSlave:
         self.timeLastRx = now
 
         self.reportedAmpsMax = ((heartbeatData[1] << 8) + heartbeatData[2]) / 100
-         transmit_mqtt("TWC/ampsMax/" + (if (self.TWCID = 1987):
+        transmit_mqtt("TWC/ampsMax/" + (if (self.TWCID = 1987):
 					 "Garage" 
 					 else if (self.TWCID = 6486):
 					 "Carport"), self.reportedAmpsMax)
