@@ -1881,7 +1881,7 @@ class TWCSlave:
         self.timeLastRx = now
 
         self.reportedAmpsMax = ((heartbeatData[1] << 8) + heartbeatData[2]) / 100
-	    publish.single("TWC/ampsMax" + self.TWCID, payload=self.reportedAmpsMax , hostname=mqttBrokerIP)
+        publish.single("TWC/ampsMax" + self.TWCID, payload=self.reportedAmpsMax , hostname=mqttBrokerIP)
     
         self.reportedAmpsActual = ((heartbeatData[3] << 8) + heartbeatData[4]) / 100
         publish.single("TWC/power" + self.TWCID, payload=self.reportedAmpsActual , hostname=mqttBrokerIP)
