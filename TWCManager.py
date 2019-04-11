@@ -125,10 +125,6 @@ import paho.mqtt.client as mqtt
 #
 # Configuration parameters
 #
-
-mqttBrokerIP = '192.168.86.97'
-
-
 # Most users will have only one ttyUSB adapter plugged in and the default value
 # of '/dev/ttyUSB0' below will work. If not, run 'dmesg |grep ttyUSB' on the
 # command line to find your rs485 adapter and put its ttyUSB# value in the
@@ -278,9 +274,13 @@ slaveSign = bytearray(b'\x77')
 # Begin functions
 #
 
-client = mqtt.Client("P1") #create new instance
-client.connect(mqttBrokerIP) #connect to broker
-client.publish("TWC/powerusage","999")
+
+def transmit_mqtt(mqttChannel, mqttPayload):
+    mqttBrokerIP = '192.168.86.97'
+    client = mqtt.Client("P1")
+    client.connect(mqttBrokerIP) #connect to broker#create new instance
+    client.publish(mqttChannel, mqttPayload, hostname=mqttBrokerIP) 
+
 
 
 def time_now():
@@ -666,7 +666,8 @@ def total_amps_actual_all_twcs():
     if(debugLevel >= 10):
         print("Total amps all slaves are using: " + str(totalAmps))
         
-    publish.single("TWC/totalAmps", payload=totalAmps, hostname=mqttBrokerIP)
+    
+    transmit_mqtt("TWC/totalAmps", totalAmps)
     
     return totalAmps
 
