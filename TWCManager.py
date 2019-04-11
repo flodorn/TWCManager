@@ -1889,21 +1889,21 @@ class TWCSlave:
         TWCIDtoString = ('TWC/ampsMax/' + hex_str(self.TWCID))
 
         self.reportedAmpsMax = ((heartbeatData[1] << 8) + heartbeatData[2]) / 100
-        transmit_mqtt(TWCIDtoString, self.reportedAmpsMax)
+        transmit_mqtt(TWCIDtoString, hex_str(self.reportedAmpsMax))
         if(debugLevel >= 10):
-                    print(time_now() + ': MQTT transfer: self.reportedAmpsMax=' + self.reportedAmpsMax)
+                    print(time_now() + ': MQTT transfer: self.reportedAmpsMax=' + hex_str(self.reportedAmpsMax))
 
     
         self.reportedAmpsActual = ((heartbeatData[3] << 8) + heartbeatData[4]) / 100
-        transmit_mqtt('TWC/power/' + hex_str(self.TWCID), self.reportedAmpsActual)
+        transmit_mqtt('TWC/power/' + hex_str(self.TWCID), hex_str(self.reportedAmpsActual))
         if(debugLevel >= 10):
-                    print(time_now() + ': MQTT transfer: self.reportedAmpsActual=' + self.reportedAmpsActual)
+                    print(time_now() + ': MQTT transfer: self.reportedAmpsActual=' + hex_str(self.reportedAmpsActual))
 	
 	
         self.reportedState = heartbeatData[0]
-        transmit_mqtt(('TWC/state/' + hex_str(self.TWCID)), self.reportedState)
+        transmit_mqtt(('TWC/state/' + hex_str(self.TWCID)), hex_str(self.reportedState))
         if(debugLevel >= 10):
-                    print(time_now() + ': MQTT transfer: self.reportedState=' + self.reportedState)
+                    print(time_now() + ': MQTT transfer: self.reportedState=' + hex_str(self.reportedState))
 	
 
         # self.lastAmpsOffered is initialized to -1.
