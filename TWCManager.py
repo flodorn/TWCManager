@@ -1887,16 +1887,13 @@ class TWCSlave:
         self.timeLastRx = now
 
         self.reportedAmpsMax = ((heartbeatData[1] << 8) + heartbeatData[2]) / 100
-        
-     
-            
         transmit_mqtt("TWC/ampsMax/" + hex_str(self.TWCID), self.reportedAmpsMax)
     
         self.reportedAmpsActual = ((heartbeatData[3] << 8) + heartbeatData[4]) / 100
-        transmit_mqtt("TWC/power" + hex_str(self.TWCID), self.reportedAmpsActual)
+        transmit_mqtt('TWC/power/' + hex_str(self.TWCID), self.reportedAmpsActual)
 	
         self.reportedState = heartbeatData[0]
-        transmit_mqtt("TWC/state" + hex_str(self.TWCID), self.reportedState)
+        transmit_mqtt(('TWC/state/' + hex_str(self.TWCID)), self.reportedState)
 	
 
         # self.lastAmpsOffered is initialized to -1.
