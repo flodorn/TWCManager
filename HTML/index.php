@@ -294,7 +294,6 @@
                 // slave TWCs connect to TWCManager.py.
                 $twcModelMaxAmps = 80;
 
-                $carApiEmailPasswordNeeded = 0;
 
                 // Get status info from TWCManager.py which includes state of each slave
                 // TWC and how many amps total are being split amongst them.
@@ -315,7 +314,7 @@
                     $GLOBALS['scheduledAmpStartTime'] = $status[$statusIdx++];
                     $GLOBALS['scheduledAmpsEndTime'] = $status[$statusIdx++];
                     $scheduledAmpsDaysBitmap = $status[$statusIdx++];
-                    for($i = 0; $i < 7; $i++) {
+                    for($i = 0; $i < 6; $i++) {
                         if($scheduledAmpsDaysBitmap & (1 << $i)) {
                             $GLOBALS["scheduledAmpsDay[$i]"] = 1;
                         }
@@ -331,8 +330,6 @@
                         print "None";
                     }
                     print "</p><p style=\"margin-bottom:0\">";
-
-                    $carApiEmailPasswordNeeded = $status[$statusIdx++];
 
                     if($status[$statusIdx] < 1) {
                         print "<strong>No slave TWCs found on RS485 network.</strong>";
