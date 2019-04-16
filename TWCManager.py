@@ -1225,7 +1225,7 @@ class TWCSlave:
                 desiredAmpsOffered = minAmpsToOffer
                         
         else:
-             if(debugLevel >= 10):
+            if(debugLevel >= 10):
                 print("BUGFIX: desiredAmpsOffered (" + str(desiredAmpsOffered) + ") > minAmpsToOffer:" + str(minAmpsToOffer) + "let's charge!!!")
             # We can tell the TWC how much power to use in 0.01A increments, but
             # the car will only alter its power in larger increments (somewhere
