@@ -193,19 +193,6 @@ wiringMaxAmpsPerTWC = 16
 # rates really does.
 minAmpsPerTWC = 6
 
-# When you have more than one vehicle associated with the Tesla car API and
-# onlyChargeMultiCarsAtHome = True, cars will only be controlled by the API when
-# parked at home. For example, when one vehicle is plugged in at home and
-# another is plugged in at a remote location and you've set TWCManager to stop
-# charging at the current time, only the one plugged in at home will be stopped
-# from charging using the car API.
-# Unfortunately, bugs in the car GPS system may cause a car to not be reported
-# as at home even if it is, in which case the car might not be charged when you
-# expect it to be. If you encounter that problem with multiple vehicles, you can
-# set onlyChargeMultiCarsAtHome = False, but you may encounter the problem of
-# a car not at home being stopped from charging by the API.
-onlyChargeMultiCarsAtHome = True
-
 # After determining how much green energy is available for charging, we add
 # greenEnergyAmpsOffset to the value. This is most often given a negative value
 # equal to the average amount of power consumed by everything other than car
@@ -686,11 +673,7 @@ def check_green_energy():
     # out how many amps * 240 = solarW and limit the car to
     # that many amps.
     totalAmpsUsed = total_amps_actual_all_twcs()
-    temporaryMaxAmpsToDivideAmongSlaves = (solarW / 230 / 3) + totalAmpsUsed
-    if(temporaryMaxAmpsToDivideAmongSlaves < 4):
-        maxAmpsToDivideAmongSlaves = 0
-    else:
-        maxAmpsToDivideAmongSlaves = temporaryMaxAmpsToDivideAmongSlaves
+    maxAmpsToDivideAmongSlaves = (solarW / 230 / 3) + totalAmpsUsed
  
     if(debugLevel >= 1):
         print("%s: Solar generating %dW so limit car charging to:\n" \
@@ -937,7 +920,6 @@ class TWCSlave:
         transmit_mqtt('TWC/ampsMax/' + hex_str(self.TWCID), self.reportedAmpsMax)
     
         self.reportedAmpsActual = ((heartbeatData[3] << 8) + heartbeatData[4]) / 100
-        transmit_mqtt('TWC/power/' + hex_str(self.TWCID), self.reportedAmpsActual)
 
         self.reportedState = heartbeatData[0]
         transmit_mqtt('TWC/state/' + hex_str(self.TWCID), self.reportedState)
@@ -958,6 +940,7 @@ class TWCSlave:
         ):
             self.timeReportedAmpsActualChangedSignificantly = now
             self.reportedAmpsActualSignificantChangeMonitor = self.reportedAmpsActual
+            transmit_mqtt('TWC/power/' + hex_str(self.TWCID), self.reportedAmpsActual)
 
         ltNow = time.localtime()
         hourNow = ltNow.tm_hour + (ltNow.tm_min / 60)
@@ -1048,9 +1031,6 @@ class TWCSlave:
                 if(ltNow.tm_hour < 7 or ltNow.tm_hour >= 21):
                     maxAmpsToDivideAmongSlaves = 0
 
-                    if(debugLevel >= 10):
-                        print(time_now() + ': BUGFIX: Now.tm_hour < 7 or ltNow.tm_hour >= 21')
-
                 else:
                     check_green_energy()
 
@@ -1078,7 +1058,7 @@ class TWCSlave:
                 for slaveTWC in slaveTWCRoundRobin:
                         if(slaveTWC.TWCID != self.TWCID):
                         # To avoid exceeding maxAmpsToDivideAmongSlaves, we must
-                        # subtract the actual amps being used by this TWC from the amps
+                        # subtract the actual amps being used by this (other???) TWC from the amps
                         # we will offer.
                                 desiredAmpsOffered -= slaveTWC.reportedAmpsActual
 
@@ -1102,32 +1082,40 @@ class TWCSlave:
         
         
         if(desiredAmpsOffered < minAmpsToOffer):
-                if (numCarsCharging > 0):
-                        if(maxAmpsToDivideAmongSlaves / numCarsCharging > minAmpsToOffer):
-                # There is enough power available to give each car
-                # minAmpsToOffer, but currently-charging cars are leaving us
-                # less power than minAmpsToOffer to give this car.
-                #
-                # minAmpsToOffer is based on minAmpsPerTWC which is
-                # user-configurable, whereas self.minAmpsTWCSupports is based on
-                # the minimum amps TWC must be set to reliably start a car
-                # charging.
-                #
-                # Unfortunately, we can't tell if a car is plugged in or wanting
-                # to charge without offering it minAmpsTWCSupports. As the car
-                # gradually starts to charge, we will see it using power and
-                # tell other TWCs on the network to use less power. This could
-                # cause the sum of power used by all TWCs to exceed
-                # wiringMaxAmpsAllTWCs for a few seconds, but I don't think
-                # exceeding by up to minAmpsTWCSupports for such a short period
-                # of time will cause problems.
-                                if(debugLevel >= 10):
-                                        print("desiredAmpsOffered TWC" + hex_str(self.TWCID) + " increased from " + str(desiredAmpsOffered)
-                                        + " to " + str(self.minAmpsTWCSupports)
-                                        + " (self.minAmpsTWCSupports)")
-                                desiredAmpsOffered = self.minAmpsTWCSupports
-                        else:
-                                desiredAmpsOffered = 0
+            if(debugLevel >= 10):
+                print("BUGFIX: desiredAmpsOffered (" + str(desiredAmpsOffered) + ") < minAmpsToOffer:" + str(minAmpsToOffer))
+            if(numCarsCharging > 0):
+                if(maxAmpsToDivideAmongSlaves / numCarsCharging > minAmpsToOffer):
+                    # There is enough power available to give each car
+                    # minAmpsToOffer, but currently-charging cars are leaving us
+                    # less power than minAmpsToOffer to give this car.
+                    #
+                    # minAmpsToOffer is based on minAmpsPerTWC which is
+                    # user-configurable, whereas self.minAmpsTWCSupports is based on
+                    # the minimum amps TWC must be set to reliably start a car
+                    # charging.
+                    #
+                    # Unfortunately, we can't tell if a car is plugged in or wanting
+                    # to charge without offering it minAmpsTWCSupports. As the car
+                    # gradually starts to charge, we will see it using power and
+                    # tell other TWCs on the network to use less power. This could
+                    # cause the sum of power used by all TWCs to exceed
+                    # wiringMaxAmpsAllTWCs for a few seconds, but I don't think
+                    # exceeding by up to minAmpsTWCSupports for such a short period
+                    # of time will cause problems.
+                    if(debugLevel >= 10):
+                            print("desiredAmpsOffered TWC" + hex_str(self.TWCID) + " increased from " + str(desiredAmpsOffered)
+                            + " to " + str(self.minAmpsTWCSupports)
+                            + " (self.minAmpsTWCSupports)")
+                    desiredAmpsOffered = self.minAmpsTWCSupports
+                else:
+                    if(debugLevel >= 10):
+                        print("BUGFIX: maxAmpsToDivideAmongSlaves / numCarsCharging > minAmpsToOffer /// set desiredAmpsOffered to 0")
+                    desiredAmpsOffered = 0
+            else:
+                if(debugLevel >= 10):
+                    print("BUGFIX: numCarsCharging = 0 /// set desiredAmpsOffered to 0")
+                desiredAmpsOffered = 0
                 # There is not enough power available to give each car
                 # minAmpsToOffer, so don't offer power to any cars. Alternately,
                 # we could charge one car at a time and switch cars
@@ -1156,17 +1144,17 @@ class TWCSlave:
                 # also wakes it) and next time it wakes, it will see there's power
                 # and start charging. Without energy saver mode, the car should
                 # begin charging within about 10 seconds of changing this value.
-                                if(debugLevel >= 10):
-                                        print("desiredAmpsOffered TWC" + hex_str(self.TWCID) + " reduced to 0 from " + str(desiredAmpsOffered)
-                                        + " because maxAmpsToDivideAmongSlaves "
-                                        + str(maxAmpsToDivideAmongSlaves)
-                                        + " / numCarsCharging " + str(numCarsCharging)
-                                        + " < minAmpsToOffer " + str(minAmpsToOffer))
+                if(debugLevel >= 10):
+                        print("desiredAmpsOffered TWC" + hex_str(self.TWCID) + " reduced to 0 from " + str(desiredAmpsOffered)
+                        + " because maxAmpsToDivideAmongSlaves "
+                        + str(maxAmpsToDivideAmongSlaves)
+                        + " / numCarsCharging " + str(numCarsCharging)
+                        + " < minAmpsToOffer " + str(minAmpsToOffer))
 
-                        if(self.lastAmpsOffered > 0 
-                           and (now - self.timeLastAmpsOfferedChanged < 60
-                                or now - self.timeReportedAmpsActualChangedSignificantly < 60
-                                or self.reportedAmpsActual < 4.0)):
+            if(self.lastAmpsOffered > 0 
+               and (now - self.timeLastAmpsOfferedChanged < 60
+                    or now - self.timeReportedAmpsActualChangedSignificantly < 60
+                    or self.reportedAmpsActual < 4.0)):
                     # We were previously telling the car to charge but now we want
                     # to tell it to stop. However, it's been less than a minute
                     # since we told it to charge or since the last significant
@@ -1225,20 +1213,20 @@ class TWCSlave:
                     # unplugged, the charge port will turn green and start charging
                     # for a minute. This lets the owner quickly see that TWCManager
                     # is working properly each time they return home and plug in.
-                        	if(debugLevel >= 10):
-                                	print("Don't stop charging TWC" + hex_str(self.TWCID) + " yet because: " +
-                                	'time - self.timeLastAmpsOfferedChanged ' +
-                                	str(int(now - self.timeLastAmpsOfferedChanged)) +
-                                	' < 60 or time - self.timeReportedAmpsActualChangedSignificantly ' +
-                              	  	str(int(now - self.timeReportedAmpsActualChangedSignificantly)) +
-                               		' < 60 or self.reportedAmpsActual ' + str(self.reportedAmpsActual) +
-                                	' < 4')
-                        	if(maxAmpsToDivideAmongSlaves < 1):
-                                	desiredAmpsOffered = 0
-                        
-                        	else: desiredAmpsOffered = minAmpsToOffer
+                if(debugLevel >= 10):
+                        print("Don't stop charging TWC" + hex_str(self.TWCID) + " yet because: " +
+                        'time - self.timeLastAmpsOfferedChanged ' +
+                        str(int(now - self.timeLastAmpsOfferedChanged)) +
+                        ' < 60 or time - self.timeReportedAmpsActualChangedSignificantly ' +
+                        str(int(now - self.timeReportedAmpsActualChangedSignificantly)) +
+                        ' < 60 or self.reportedAmpsActual ' + str(self.reportedAmpsActual) +
+                        ' < 4')
+
+                desiredAmpsOffered = minAmpsToOffer
                         
         else:
+             if(debugLevel >= 10):
+                print("BUGFIX: desiredAmpsOffered (" + str(desiredAmpsOffered) + ") > minAmpsToOffer:" + str(minAmpsToOffer) + "let's charge!!!")
             # We can tell the TWC how much power to use in 0.01A increments, but
             # the car will only alter its power in larger increments (somewhere
             # between 0.5 and 0.6A). The car seems to prefer being sent whole
