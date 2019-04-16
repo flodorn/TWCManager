@@ -1068,12 +1068,16 @@ class TWCSlave:
                 
                 if(desiredAmpsOffered > fairShareAmps):
                         desiredAmpsOffered = fairShareAmps
+			if(debugLevel >= 10):
+				print("BUGFIX: desiredAmpsOffered = fairShareAmps: " +str(fairShareAmps) 
+				      + "/// with maxAmpsToDivideAmongSlaves: " +str(maxAmpsToDivideAmongSlaves))
 
-        if(debugLevel >= 10):
-            print("desiredAmpsOffered TWC" + hex_str(self.TWCID) + " reduced from " + str(maxAmpsToDivideAmongSlaves)
-                  + " to " + str(desiredAmpsOffered)
-                  + " with " + str(numCarsCharging)
-                  + " cars charging.")
+            if(debugLevel >= 10):
+                print("desiredAmpsOffered TWC" + hex_str(self.TWCID) + " reduced from " + str(maxAmpsToDivideAmongSlaves)
+                      + " to " + str(desiredAmpsOffered)
+                      + " because of fairShareAmps " + str(fairShareAmps)
+                      + " /// with " + str(numCarsCharging)
+                      + " cars charging.")
 
 
         minAmpsToOffer = minAmpsPerTWC
@@ -1144,13 +1148,7 @@ class TWCSlave:
                 # also wakes it) and next time it wakes, it will see there's power
                 # and start charging. Without energy saver mode, the car should
                 # begin charging within about 10 seconds of changing this value.
-                if(debugLevel >= 10):
-                        print("desiredAmpsOffered TWC" + hex_str(self.TWCID) + " reduced to 0 from " + str(desiredAmpsOffered)
-                        + " because maxAmpsToDivideAmongSlaves "
-                        + str(maxAmpsToDivideAmongSlaves)
-                        + " / numCarsCharging " + str(numCarsCharging)
-                        + " < minAmpsToOffer " + str(minAmpsToOffer))
-
+                
             if(self.lastAmpsOffered > 0 
                and (now - self.timeLastAmpsOfferedChanged < 60
                     or now - self.timeReportedAmpsActualChangedSignificantly < 60
