@@ -1055,29 +1055,29 @@ class TWCSlave:
         desiredAmpsOffered = maxAmpsToDivideAmongSlaves
         
         if (numCarsCharging > 0):
-                for slaveTWC in slaveTWCRoundRobin:
-                        if(slaveTWC.TWCID != self.TWCID):
-                        # To avoid exceeding maxAmpsToDivideAmongSlaves, we must
-                        # subtract the actual amps being used by this (other???) TWC from the amps
-                        # we will offer.
-                                desiredAmpsOffered -= slaveTWC.reportedAmpsActual
+            for slaveTWC in slaveTWCRoundRobin:
+                    if(slaveTWC.TWCID != self.TWCID):
+                    # To avoid exceeding maxAmpsToDivideAmongSlaves, we must
+                    # subtract the actual amps being used by this (other???) TWC from the amps
+                    # we will offer.
+                            desiredAmpsOffered -= slaveTWC.reportedAmpsActual
 
-                # Allocate this slave a fraction of maxAmpsToDivideAmongSlaves divided
-                # by the number of cars actually charging.
-                fairShareAmps = (maxAmpsToDivideAmongSlaves / numCarsCharging)
-                
-                if(desiredAmpsOffered > fairShareAmps):
-                        desiredAmpsOffered = fairShareAmps
-                        if(debugLevel >= 10):
-                            print("BUGFIX: desiredAmpsOffered = fairShareAmps: " +str(fairShareAmps) 
-                                  + "/// with maxAmpsToDivideAmongSlaves: " +str(maxAmpsToDivideAmongSlaves))
+            # Allocate this slave a fraction of maxAmpsToDivideAmongSlaves divided
+            # by the number of cars actually charging.
+            fairShareAmps = (maxAmpsToDivideAmongSlaves / numCarsCharging)
+
+            if(desiredAmpsOffered > fairShareAmps):
+                    desiredAmpsOffered = fairShareAmps
+                    if(debugLevel >= 10):
+                        print("BUGFIX: desiredAmpsOffered = fairShareAmps: " +str(fairShareAmps) 
+                              + "/// with maxAmpsToDivideAmongSlaves: " +str(maxAmpsToDivideAmongSlaves))
 
             if(debugLevel >= 10):
-                print("desiredAmpsOffered TWC" + hex_str(self.TWCID) + " reduced from " + str(maxAmpsToDivideAmongSlaves)
-                      + " to " + str(desiredAmpsOffered)
-                      + " because of fairShareAmps " + str(fairShareAmps)
-                      + " /// with " + str(numCarsCharging)
-                      + " cars charging.")
+            print("desiredAmpsOffered TWC" + hex_str(self.TWCID) + " reduced from " + str(maxAmpsToDivideAmongSlaves)
+                  + " to " + str(desiredAmpsOffered)
+                  + " because of fairShareAmps " + str(fairShareAmps)
+                  + " /// with " + str(numCarsCharging)
+                  + " cars charging.")
 
 
         minAmpsToOffer = minAmpsPerTWC
