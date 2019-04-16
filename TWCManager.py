@@ -1068,9 +1068,9 @@ class TWCSlave:
                 
                 if(desiredAmpsOffered > fairShareAmps):
                         desiredAmpsOffered = fairShareAmps
-			if(debugLevel >= 10):
-				print("BUGFIX: desiredAmpsOffered = fairShareAmps: " +str(fairShareAmps) 
-				      + "/// with maxAmpsToDivideAmongSlaves: " +str(maxAmpsToDivideAmongSlaves))
+                        if(debugLevel >= 10):
+                            print("BUGFIX: desiredAmpsOffered = fairShareAmps: " +str(fairShareAmps) 
+                                  + "/// with maxAmpsToDivideAmongSlaves: " +str(maxAmpsToDivideAmongSlaves))
 
             if(debugLevel >= 10):
                 print("desiredAmpsOffered TWC" + hex_str(self.TWCID) + " reduced from " + str(maxAmpsToDivideAmongSlaves)
