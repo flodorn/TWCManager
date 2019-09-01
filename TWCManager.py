@@ -274,8 +274,8 @@ def transmit_mqtt(mqttChannel, mqttPayload):
 
 
 def on_message_A(client, userdata, message):
-        stopcharge1987=message.payload.decode("utf-8")
-        print('stopcharge1987= '+stopcharge1987)
+        stopCharge1987=message.payload.decode("utf-8")
+        print('stopcharge1987= '+stopCharge1987)
 
 def check_mqtt_A():
         client = mqtt.Client("P3")
@@ -285,8 +285,8 @@ def check_mqtt_A():
         client.subscribe("TWC/stopcharge/19 87")
 
 def on_message_B(client, userdata, message):
-        stopcharge6486=message.payload.decode("utf-8")
-        print('stopcharge6486= '+ stopcharge6486)
+        stopCharge6486=message.payload.decode("utf-8")
+        print('stopcharge6486= '+ stopCharge6486)
 
 def check_mqtt_B():
         client = mqtt.Client("P4")
@@ -942,7 +942,7 @@ class TWCSlave:
         
             if(debugLevel >= 10):
                 print(time_now() + ': BUGFIX: -----inside heartbeet loop!!!--- ' + hex_str(self.TWCID))
-                print('stopcharge1987= '+ stopcharge1987)
+                print('stopcharge1987= '+ stopCharge1987)
                 
         if(newTWCID == '64 86' and stopCharge6486 == 0):
             
@@ -951,7 +951,7 @@ class TWCSlave:
                
             if(debugLevel >= 10):
                 print(time_now() + ': BUGFIX: -----inside heartbeet loop!!!--- ' + hex_str(self.TWCID))
-                print('stopcharge6486= '+ stopcharge6486)
+                print('stopcharge6486= '+ stopCharge6486)
                 
 
 
