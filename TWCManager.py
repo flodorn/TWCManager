@@ -918,7 +918,7 @@ class TWCSlave:
         
         subscribe_mqtt()
         
-        if(stopChargeA = 0):
+        if(stopChargeA != 1):
         
             global fakeTWCID, overrideMasterHeartbeatData, debugLevel, \
                    timeLastTx
