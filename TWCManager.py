@@ -250,9 +250,6 @@ fakeTWCID = bytearray(b'\x77\x77')
 masterSign = bytearray(b'\x77')
 slaveSign = bytearray(b'\x77')
 
-
-mqttBrokerIP = '192.168.86.97'
-
 #
 # End configuration parameters
 #
@@ -266,36 +263,11 @@ mqttBrokerIP = '192.168.86.97'
 
 
 def transmit_mqtt(mqttChannel, mqttPayload):
-    client = mqtt.Client("P1") #create new instance
-    client.connect(mqttBrokerIP) #connect to broker
+    mqttBrokerIP = '192.168.86.97'
+    client = mqtt.Client("P1")
+    client.connect(mqttBrokerIP) #connect to broker#create new instance
     client.publish(mqttChannel, mqttPayload) 
     client.disconnect()
-    
-
-
-def on_message_A(client, userdata, message):
-        stopCharge1987=message.payload.decode("utf-8")
-        print('stopcharge1987= '+ str(stopCharge1987))
-
-def check_mqtt_A():
-        client = mqtt.Client("P3")
-        client.on_message = on_message_A
-        client.connect(mqttBrokerIP)
-        client.loop_start()
-        client.subscribe("TWC/stopcharge/19 87")
-
-def on_message_B(client, userdata, message):
-        stopCharge6486=message.payload.decode("utf-8")
-        print('stopcharge6486= '+ str(stopCharge6486))
-
-def check_mqtt_B():
-        client = mqtt.Client("P4")
-        client.on_message = on_message_B
-        client.connect(mqttBrokerIP)
-        client.loop_start()
-        client.subscribe("TWC/stopcharge/64 86")
-
-
 
 
 def time_now():
@@ -922,41 +894,17 @@ class TWCSlave:
         #                          telling slaves to limit power to 07 d0
         #                          (20.00A). 01 byte indicates Master is plugged
         #                          in to a car.)
-
         global fakeTWCID, overrideMasterHeartbeatData, debugLevel, \
                timeLastTx
 
         if(len(overrideMasterHeartbeatData) >= 7):
             self.masterHeartbeatData = overrideMasterHeartbeatData
 
-                
-        check_mqtt_A()
-        check_mqtt_B()
-        
-        newTWCID=hex_str(self.TWCID)
-        
-        if(newTWCID == '19 87' and stopCharge1987 == 0):   
-		
-            send_msg(bytearray(b'\xFB\xE0') + fakeTWCID + bytearray(self.TWCID)
-                     + bytearray(self.masterHeartbeatData))
-        
-            if(debugLevel >= 10):
-                print(time_now() + ': BUGFIX: -----inside heartbeet loop!!!--- ' + hex_str(self.TWCID))
-                print('stopcharge1987= '+ str(stopCharge1987))
-                
-        if(newTWCID == '64 86' and stopCharge6486 == 0):
-            
-            send_msg(bytearray(b'\xFB\xE0') + fakeTWCID + bytearray(self.TWCID)
-                     + bytearray(self.masterHeartbeatData))
-               
-            if(debugLevel >= 10):
-                print(time_now() + ': BUGFIX: -----inside heartbeet loop!!!--- ' + hex_str(self.TWCID))
-                print('stopcharge6486= '+ str(stopCharge6486))
-                
+       
+        send_msg(bytearray(b'\xFB\xE0') + fakeTWCID + bytearray(self.TWCID)
+                 + bytearray(self.masterHeartbeatData))
 
 
-        
-        
     def receive_slave_heartbeat(self, heartbeatData):
         # Handle heartbeat message received from real slave TWC.
         global debugLevel, nonScheduledAmpsMax, \
@@ -1566,10 +1514,6 @@ timeLastkWhSaved = time.time()
 # not match the script directory.
 settingsFileName = re.sub(r'/[^/]+$', r'/TWCManagerSettings.txt', __file__)
 nonScheduledAmpsMax = -1
-
-stopCharge1987 = 0
-stopCharge6486 = 0
-
 timeLastHeartbeatDebugOutput = 0
 
 webMsgPacked = ''
