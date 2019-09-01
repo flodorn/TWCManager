@@ -933,7 +933,7 @@ class TWCSlave:
         check_mqtt_A()
         check_mqtt_B()
         
-        str.replace(self.TWCID, newTWCID)
+        newTWCID = self.TWCID.replace(" ", "")
 	
         if(debugLevel >= 10):
                 print(time_now() + ': BUGFIX: mqtt check ---- ' + hex_str(self.TWCID))
