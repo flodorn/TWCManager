@@ -282,7 +282,7 @@ def subscribe_mqtt():
     
     
 def on_message(client, userdata, message):
-    stopCharge+message.topic = message.payload
+    stopChargeA = message.payload
     print("message received " ,str(message.payload.decode("utf-8")))
     print("message topic=",message.topic)
     print("message qos=",message.qos)
