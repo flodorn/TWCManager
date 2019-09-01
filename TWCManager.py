@@ -275,8 +275,6 @@ def transmit_mqtt(mqttChannel, mqttPayload):
 def subscribe_mqtt():
     client = mqtt.Client("P2") #create new instance
     client.connect(mqttBrokerIP) #connect to broker
-    client.subscribe("TWC/stopcharge/19 87/")
-    client.subscribe("TWC/stopcharge/64 86/")
     client.subscribe("TWC/stopcharge/A/")
     client.on_message = on_message
     
