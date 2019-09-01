@@ -260,6 +260,14 @@
                 // A limit of -1 means track green energy sources.
                 ipcCommand('setNonScheduledAmps=' . $_REQUEST['nonScheduledAmpsMax']);
             }
+            if(@$_REQUEST['stopCharge6486'] != '') {
+                
+                ipcCommand('stopCharge6486=' . $_REQUEST['stopCharge6486']);
+            }
+            if(@$_REQUEST['stopCharge1987'] != '') {
+                
+                ipcCommand('stopCharge1987=' . $_REQUEST['stopCharge1987']);
+            }
             if(@$_REQUEST['scheduledAmpsMax'] != '') {
                 $daysBitmap = 0;
                 for($i = 0; $i < 7; $i++) {
