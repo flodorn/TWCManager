@@ -935,7 +935,7 @@ class TWCSlave:
         
         
         if(debugLevel >= 10):
-                print(time_now() + ': BUGFIX: mqtt check ---- ' +self.TWCID)
+                print(time_now() + ': BUGFIX: mqtt check ---- ' + hex_str(self.TWCID))
         
         if(self.TWCID == 1987 and stopCharge1987 == 0):
 
