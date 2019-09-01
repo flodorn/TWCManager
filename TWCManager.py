@@ -282,7 +282,7 @@ def subscribe_mqtt():
     
     
 def on_message(client, userdata, message):
-    stopCharging+message.topic = message.payload
+    stopCharge+message.topic = message.payload
     print("message received " ,str(message.payload.decode("utf-8")))
     print("message topic=",message.topic)
     print("message qos=",message.qos)
@@ -918,7 +918,7 @@ class TWCSlave:
         
         subscribe_mqtt()
         
-        if(stopCharging+self.TWCID = 0):
+        if(stopChargeA = 0):
         
             global fakeTWCID, overrideMasterHeartbeatData, debugLevel, \
                    timeLastTx
@@ -1540,8 +1540,9 @@ timeLastkWhSaved = time.time()
 # not match the script directory.
 settingsFileName = re.sub(r'/[^/]+$', r'/TWCManagerSettings.txt', __file__)
 nonScheduledAmpsMax = -1
-stopCharging1987 = 0
-stopCharging6486 = 0
+stopCharge1987 = 0
+stopCharge6486 = 0
+stopChargeA = 0
 
 timeLastHeartbeatDebugOutput = 0
 
