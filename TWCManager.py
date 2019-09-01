@@ -911,7 +911,7 @@ class TWCSlave:
                 print(time_now() + ': BUGFIX: -----inside heartbeet loop!!!--- ' + hex_str(self.TWCID))
                 print('stopcharge1987= '+ str(stopCharge1987))
                 
-        else if(newTWCID == '64 86' and stopCharge6486 == 0):
+        elif(newTWCID == '64 86' and stopCharge6486 == 0):
             
             send_msg(bytearray(b'\xFB\xE0') + fakeTWCID + bytearray(self.TWCID)
                      + bytearray(self.masterHeartbeatData))
