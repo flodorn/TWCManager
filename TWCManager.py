@@ -1488,7 +1488,7 @@ class TWCSlave:
 
                 print("WARNING: Offering slave TWC %02X%02X %.1fA instead of " \
                     "%.1fA to avoid overloading wiring shared by all TWCs." % (
-                    self.TWCID[0], * /[1], self.lastAmpsOffered, desiredAmpsOffered))
+                    self.TWCID[0], self.TWCID[1], self.lastAmpsOffered, desiredAmpsOffered))
 
             if(self.lastAmpsOffered > self.wiringMaxAmps):
                 # We reach this case frequently in some configurations, such as
