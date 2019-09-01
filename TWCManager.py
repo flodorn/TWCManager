@@ -250,6 +250,9 @@ fakeTWCID = bytearray(b'\x77\x77')
 masterSign = bytearray(b'\x77')
 slaveSign = bytearray(b'\x77')
 
+
+mqttBrokerIP = '192.168.86.97'
+
 #
 # End configuration parameters
 #
@@ -263,12 +266,29 @@ slaveSign = bytearray(b'\x77')
 
 
 def transmit_mqtt(mqttChannel, mqttPayload):
-    mqttBrokerIP = '192.168.86.97'
-    client = mqtt.Client("P1")
-    client.connect(mqttBrokerIP) #connect to broker#create new instance
+    client = mqtt.Client("P1") #create new instance
+    client.connect(mqttBrokerIP) #connect to broker
     client.publish(mqttChannel, mqttPayload) 
     client.disconnect()
+    
 
+def subscribe_mqtt():
+    client = mqtt.Client("P2") #create new instance
+    client.connect(mqttBrokerIP) #connect to broker
+    client.subscribe("TWC/stopcharge/19 87/")
+    client.subscribe("TWC/stopcharge/64 86/")
+    client.subscribe("TWC/stopcharge/A/")
+    client.on_message = on_message
+    
+    
+def on_message(client, userdata, message):
+    stopCharging+message.topic = message.payload
+    print("message received " ,str(message.payload.decode("utf-8")))
+    print("message topic=",message.topic)
+    print("message qos=",message.qos)
+    print("message retain flag=",message.retain)
+
+    
 
 def time_now():
     global displayMilliseconds
@@ -894,15 +914,21 @@ class TWCSlave:
         #                          telling slaves to limit power to 07 d0
         #                          (20.00A). 01 byte indicates Master is plugged
         #                          in to a car.)
-        global fakeTWCID, overrideMasterHeartbeatData, debugLevel, \
-               timeLastTx
+        
+        
+        subscribe_mqtt()
+        
+        if(stopCharging+self.TWCID = 0):
+        
+            global fakeTWCID, overrideMasterHeartbeatData, debugLevel, \
+                   timeLastTx
 
-        if(len(overrideMasterHeartbeatData) >= 7):
-            self.masterHeartbeatData = overrideMasterHeartbeatData
+            if(len(overrideMasterHeartbeatData) >= 7):
+                self.masterHeartbeatData = overrideMasterHeartbeatData
 
-       
-        send_msg(bytearray(b'\xFB\xE0') + fakeTWCID + bytearray(self.TWCID)
-                 + bytearray(self.masterHeartbeatData))
+
+            send_msg(bytearray(b'\xFB\xE0') + fakeTWCID + bytearray(self.TWCID)
+                     + bytearray(self.masterHeartbeatData))
 
 
     def receive_slave_heartbeat(self, heartbeatData):
@@ -1514,6 +1540,9 @@ timeLastkWhSaved = time.time()
 # not match the script directory.
 settingsFileName = re.sub(r'/[^/]+$', r'/TWCManagerSettings.txt', __file__)
 nonScheduledAmpsMax = -1
+stopCharging1987 = 0
+stopCharging6486 = 0
+
 timeLastHeartbeatDebugOutput = 0
 
 webMsgPacked = ''
