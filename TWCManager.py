@@ -900,9 +900,26 @@ class TWCSlave:
         if(len(overrideMasterHeartbeatData) >= 7):
             self.masterHeartbeatData = overrideMasterHeartbeatData
 
-       
-        send_msg(bytearray(b'\xFB\xE0') + fakeTWCID + bytearray(self.TWCID)
-                 + bytearray(self.masterHeartbeatData))
+        newTWCID=hex_str(self.TWCID)
+        
+        if(newTWCID == '19 87' and stopCharge1987 == 0):   
+		
+            send_msg(bytearray(b'\xFB\xE0') + fakeTWCID + bytearray(self.TWCID)
+                     + bytearray(self.masterHeartbeatData))
+        
+            if(debugLevel >= 10):
+                print(time_now() + ': BUGFIX: -----inside heartbeet loop!!!--- ' + hex_str(self.TWCID))
+                print('stopcharge1987= '+ str(stopCharge1987))
+                
+        else if(newTWCID == '64 86' and stopCharge6486 == 0):
+            
+            send_msg(bytearray(b'\xFB\xE0') + fakeTWCID + bytearray(self.TWCID)
+                     + bytearray(self.masterHeartbeatData))
+               
+            if(debugLevel >= 10):
+                print(time_now() + ': BUGFIX: -----inside heartbeet loop!!!--- ' + hex_str(self.TWCID))
+                print('stopcharge6486= '+ str(stopCharge6486))
+                
 
 
     def receive_slave_heartbeat(self, heartbeatData):
@@ -1516,6 +1533,10 @@ settingsFileName = re.sub(r'/[^/]+$', r'/TWCManagerSettings.txt', __file__)
 nonScheduledAmpsMax = -1
 timeLastHeartbeatDebugOutput = 0
 
+stopCharge1987 = 0
+stopCharge6486 = 0
+
+
 webMsgPacked = ''
 webMsgMaxSize = 300
 webMsgResult = 0
@@ -1739,6 +1760,25 @@ while True:
                         # Save nonScheduledAmpsMax to SD card so the setting
                         # isn't lost on power failure or script restart.
                         save_settings()
+                        
+                elif(webMsg[0:15] == b'stopCharge1987='):
+                    m = re.search(b'([-0-9]+)', webMsg[14:len(webMsg)])
+                    if(m):
+                        stopCharge1987 = int(m.group(1))
+
+                        # Save stopCharge1987 to SD card so the setting
+                        # isn't lost on power failure or script restart.
+                        save_settings()
+                        
+                elif(webMsg[0:15] == b'stopCharge6486='):
+                    m = re.search(b'([-0-9]+)', webMsg[14:len(webMsg)])
+                    if(m):
+                        stopCharge6486 = int(m.group(1))
+
+                        # Save stopCharge1987 to SD card so the setting
+                        # isn't lost on power failure or script restart.
+                        save_settings()
+                        
                 elif(webMsg[0:17] == b'setScheduledAmps='):
                     m = re.search(b'([-0-9]+)\nstartTime=([-0-9]+):([0-9]+)\nendTime=([-0-9]+):([0-9]+)\ndays=([0-9]+)', \
                                   webMsg[17:len(webMsg)], re.MULTILINE)
