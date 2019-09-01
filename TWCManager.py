@@ -939,7 +939,7 @@ class TWCSlave:
                 print(time_now() + ': BUGFIX: mqtt check ---- ' + hex_str(self.TWCID))
         
 	
-        if(newTWCID == 19 87 and stopCharge1987 == 0):
+        if(newTWCID == 1987 and stopCharge1987 == 0):
             if(debugLevel >= 10):
                 print(time_now() + ': BUGFIX: -----inside heartbeet loop!!!--- ' + hex_str(newTWCID))
 		
