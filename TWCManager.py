@@ -280,7 +280,7 @@ def on_message_A(client, userdata, message):
 def check_mqtt_A():
         client = mqtt.Client("P3")
         client.on_message = on_message_A
-        client.connect(broker_address)
+        client.connect(mqttBrokerIP)
         client.loop_start()
         client.subscribe("TWC/stopcharge/19 87")
 
@@ -291,7 +291,7 @@ def on_message_B(client, userdata, message):
 def check_mqtt_B():
         client = mqtt.Client("P4")
         client.on_message = on_message_B
-        client.connect(broker_address)
+        client.connect(mqttBrokerIP)
         client.loop_start()
         client.subscribe("TWC/stopcharge/64 86")
 
