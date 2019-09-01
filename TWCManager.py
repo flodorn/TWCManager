@@ -1538,6 +1538,7 @@ timeLastkWhSaved = time.time()
 # not match the script directory.
 settingsFileName = re.sub(r'/[^/]+$', r'/TWCManagerSettings.txt', __file__)
 nonScheduledAmpsMax = -1
+
 stopCharge1987 = 0
 stopCharge6486 = 0
 stopChargeA = 0
