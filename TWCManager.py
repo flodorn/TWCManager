@@ -943,16 +943,16 @@ class TWCSlave:
             send_msg(bytearray(b'\xFB\xE0') + fakeTWCID + bytearray(self.TWCID)
                      + bytearray(self.masterHeartbeatData))
         
-                if(debugLevel >= 10):
-                    print(time_now() + ': BUGFIX: -----inside heartbeet loop!!!--- ' + hex_str(newTWCID))	
+            if(debugLevel >= 10):
+                print(time_now() + ': BUGFIX: -----inside heartbeet loop!!!--- ' + hex_str(newTWCID))	
 
         if(newTWCID == 6486 and stopCharge6486 == 0):
             
             send_msg(bytearray(b'\xFB\xE0') + fakeTWCID + bytearray(self.TWCID)
                      + bytearray(self.masterHeartbeatData))
                
-                if(debugLevel >= 10):
-                    print(time_now() + ': BUGFIX: -----inside heartbeet loop!!!--- ' + hex_str(newTWCID))
+            if(debugLevel >= 10):
+                print(time_now() + ': BUGFIX: -----inside heartbeet loop!!!--- ' + hex_str(newTWCID))
 
     def receive_slave_heartbeat(self, heartbeatData):
         # Handle heartbeat message received from real slave TWC.
