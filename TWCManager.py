@@ -933,7 +933,7 @@ class TWCSlave:
         check_mqtt_A()
         check_mqtt_B()
         
-	newTWCID=hex_str(self.TWCID)
+        newTWCID=hex_str(self.TWCID)
         
         if(debugLevel >= 10):
                 print(time_now() + ': BUGFIX: mqtt check ---- ' + hex_str(self.TWCID))
@@ -944,7 +944,7 @@ class TWCSlave:
                      + bytearray(self.masterHeartbeatData))
         
             if(debugLevel >= 10):
-                print(time_now() + ': BUGFIX: -----inside heartbeet loop!!!--- ' + hex_str(self.TWCID))	
+                print(time_now() + ': BUGFIX: -----inside heartbeet loop!!!--- ' + hex_str(self.TWCID))
 
         if(newTWCID == '64 86' and stopCharge6486 == 0):
             
