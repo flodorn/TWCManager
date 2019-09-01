@@ -272,21 +272,31 @@ def transmit_mqtt(mqttChannel, mqttPayload):
     client.disconnect()
     
 
-def subscribe_mqtt():
-    client = mqtt.Client("P2") #create new instance
-    client.connect(mqttBrokerIP) #connect to broker
-    client.subscribe("TWC/stopcharge/A")
-    client.on_message = on_message
-    
-    
-def on_message(client, userdata, message):
-    stopChargeA = message.payload
-    print("message received " ,str(message.payload.decode("utf-8")))
-    print("message topic=",message.topic)
-    print("message qos=",message.qos)
-    print("message retain flag=",message.retain)
 
-    
+def on_message_A(client, userdata, message):
+        stopcharge1987=message.payload.decode("utf-8")
+        print('stopcharge1987= '+stopcharge1987)
+
+def check_mqtt_A():
+        client = mqtt.Client("P3")
+        client.on_message = on_message_A
+        client.connect(broker_address)
+        client.loop_start()
+        client.subscribe("TWC/stopcharge/19 87")
+
+def on_message_B(client, userdata, message):
+        stopcharge6486=message.payload.decode("utf-8")
+        print('stopcharge6486= '+ stopcharge6486)
+
+def check_mqtt_B():
+        client = mqtt.Client("P4")
+        client.on_message = on_message_B
+        client.connect(broker_address)
+        client.loop_start()
+        client.subscribe("TWC/stopcharge/64 86")
+
+
+
 
 def time_now():
     global displayMilliseconds
@@ -912,22 +922,31 @@ class TWCSlave:
         #                          telling slaves to limit power to 07 d0
         #                          (20.00A). 01 byte indicates Master is plugged
         #                          in to a car.)
-        
-        
-        subscribe_mqtt()
-        
-        if(stopChargeA != 1):
-        
-            global fakeTWCID, overrideMasterHeartbeatData, debugLevel, \
-                   timeLastTx
 
-            if(len(overrideMasterHeartbeatData) >= 7):
-                self.masterHeartbeatData = overrideMasterHeartbeatData
+        global fakeTWCID, overrideMasterHeartbeatData, debugLevel, \
+               timeLastTx
 
+        if(len(overrideMasterHeartbeatData) >= 7):
+            self.masterHeartbeatData = overrideMasterHeartbeatData
+
+                
+        check_mqtt_A()
+        check_mqtt_B()
+        
+        
+        if(debugLevel >= 10):
+                print(time_now() + ': BUGFIX: mqtt check ---- ' +self.TWCID)
+        
+        if(self.TWCID = 1987 and stopCharge1987 != 0):
 
             send_msg(bytearray(b'\xFB\xE0') + fakeTWCID + bytearray(self.TWCID)
                      + bytearray(self.masterHeartbeatData))
-
+            
+        if(self.TWCID = 6486 and stopCharge6486 != 0):
+            
+             send_msg(bytearray(b'\xFB\xE0') + fakeTWCID + bytearray(self.TWCID)
+                     + bytearray(self.masterHeartbeatData))
+            
 
     def receive_slave_heartbeat(self, heartbeatData):
         # Handle heartbeat message received from real slave TWC.
@@ -1469,7 +1488,7 @@ class TWCSlave:
 
                 print("WARNING: Offering slave TWC %02X%02X %.1fA instead of " \
                     "%.1fA to avoid overloading wiring shared by all TWCs." % (
-                    self.TWCID[0], self.TWCID[1], self.lastAmpsOffered, desiredAmpsOffered))
+                    self.TWCID[0], * /[1], self.lastAmpsOffered, desiredAmpsOffered))
 
             if(self.lastAmpsOffered > self.wiringMaxAmps):
                 # We reach this case frequently in some configurations, such as
@@ -1541,7 +1560,6 @@ nonScheduledAmpsMax = -1
 
 stopCharge1987 = 0
 stopCharge6486 = 0
-stopChargeA = 0
 
 timeLastHeartbeatDebugOutput = 0
 
