@@ -902,24 +902,31 @@ class TWCSlave:
 
         newTWCID=hex_str(self.TWCID)
         
-        if(newTWCID == '19 87' and stopCharge1987 == 0):   
-		
-            send_msg(bytearray(b'\xFB\xE0') + fakeTWCID + bytearray(self.TWCID)
-                     + bytearray(self.masterHeartbeatData))
-        
-            if(debugLevel >= 10):
-                print(time_now() + ': BUGFIX: -----inside heartbeet loop!!!--- ' + hex_str(self.TWCID))
-                print('stopcharge1987= '+ str(stopCharge1987))
+        if(newTWCID == '19 87'):   
+		    if(stopCharge1987 == 0):
+                send_msg(bytearray(b'\xFB\xE0') + fakeTWCID + bytearray(self.TWCID)
+                         + bytearray(self.masterHeartbeatData))
+
+                if(debugLevel >= 10):
+                    print(time_now() + ': BUGFIX: -----inside heartbeet loop!!!--- ' + hex_str(self.TWCID))
+                    print('stopcharge1987= '+ str(stopCharge1987))
+                    
+            else:
+                self.reportedAmpsActual = 0
+                print('BUGFIX: setting self.reportedAmpsActual to 0 for TWC '+ str(newTWCID))
                 
-        elif(newTWCID == '64 86' and stopCharge6486 == 0):
+        elif(newTWCID == '64 86'):
+            if(stopCharge6486 == 0):
+                send_msg(bytearray(b'\xFB\xE0') + fakeTWCID + bytearray(self.TWCID)
+                         + bytearray(self.masterHeartbeatData))
+
+                if(debugLevel >= 10):
+                    print(time_now() + ': BUGFIX: -----inside heartbeet loop!!!--- ' + hex_str(self.TWCID))
+                    print('stopcharge6486= '+ str(stopCharge6486))
             
-            send_msg(bytearray(b'\xFB\xE0') + fakeTWCID + bytearray(self.TWCID)
-                     + bytearray(self.masterHeartbeatData))
-               
-            if(debugLevel >= 10):
-                print(time_now() + ': BUGFIX: -----inside heartbeet loop!!!--- ' + hex_str(self.TWCID))
-                print('stopcharge6486= '+ str(stopCharge6486))
-                
+            else:
+                self.reportedAmpsActual = 0
+                print('BUGFIX: setting self.reportedAmpsActual to 0 for TWC '+ str(newTWCID))
 
 
     def receive_slave_heartbeat(self, heartbeatData):
