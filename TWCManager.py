@@ -902,8 +902,8 @@ class TWCSlave:
 
         newTWCID=hex_str(self.TWCID)
         
-        if(newTWCID == '19 87'):   
-		    if(stopCharge1987 == 0):
+        if(newTWCID == '19 87'):
+            if(stopCharge1987 == 0):
                 send_msg(bytearray(b'\xFB\xE0') + fakeTWCID + bytearray(self.TWCID)
                          + bytearray(self.masterHeartbeatData))
 
