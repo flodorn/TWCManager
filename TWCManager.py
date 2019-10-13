@@ -263,7 +263,7 @@ slaveSign = bytearray(b'\x77')
 
 
 def transmit_mqtt(mqttChannel, mqttPayload):
-    mqttBrokerIP = '192.168.86.97'
+    mqttBrokerIP = '192.168.1.11'
     client = mqtt.Client("P1")
     client.connect(mqttBrokerIP) #connect to broker#create new instance
     client.publish(mqttChannel, mqttPayload) 
@@ -650,7 +650,7 @@ def check_green_energy():
     # values or authentication. The -s option prevents curl from
     # displaying download stats. -m 60 prevents the whole
     # operation from taking over 60 seconds.
-    greenEnergyData = run_process('curl -s -m 60 "http://192.168.86.97:8080/rest/items/powerForCars/state"')
+    greenEnergyData = run_process('curl -s -m 60 "http://192.168.1.11:8080/rest/items/powerForCars/state"')
 
     # In case, greenEnergyData will contain something like this:
     #   MTU, Time, Power, Cost, Voltage
