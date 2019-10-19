@@ -263,11 +263,10 @@ slaveSign = bytearray(b'\x77')
 
 
 def transmit_mqtt(mqttChannel, mqttPayload):
-    mqttBrokerIP = '192.168.1.11'
-    client = mqtt.Client("P1")
-    client.connect(mqttBrokerIP) #connect to broker#create new instance
+    client = mqtt.Client(client_id="P1")
+    client.connect("192.168.1.11") #connect to broker#create new instance
+    mqttc.loop_start()
     client.publish(mqttChannel, mqttPayload) 
-    client.disconnect()
 
 
 def time_now():
