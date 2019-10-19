@@ -264,10 +264,12 @@ slaveSign = bytearray(b'\x77')
 
 def transmit_mqtt(mqttChannel, mqttPayload):
     client = mqtt.Client(client_id="P1")
-    client.connect("192.168.1.11", port=1883) #connect to broker
-    client.loop_forever(timeout=1.0, max_packets=1, retry_first_connection=False)
-    client.publish(mqttChannel, mqttPayload) 
+    client.connect("192.168.1.11", 1883, 60) #connect to broker
+    client.loop_start()
+    infot = client.publish(mqttChannel, mqttPayload) 
+    infot.wait_for_publish()
     client.disconnect()
+
 
 
 def time_now():
