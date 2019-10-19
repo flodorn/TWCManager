@@ -918,7 +918,9 @@ class TWCSlave:
                 self.reportedAmpsMax = 0
                 print('BUGFIX: setting self.reportedAmpsActual to 0 for TWC '+ str(newTWCID))
                 transmit_mqtt('TWC/ampsMax/' + hex_str(self.TWCID), self.reportedAmpsMax)
+                time.sleep(2)
                 transmit_mqtt('TWC/power/' + hex_str(self.TWCID), self.reportedAmpsActual)
+                time.sleep(2)
                 
         elif(newTWCID == '64 86'):
             if(stopCharge6486 == 0):
@@ -934,7 +936,9 @@ class TWCSlave:
                 self.reportedAmpsMax = 0
                 print('BUGFIX: setting self.reportedAmpsActual to 0 for TWC '+ str(newTWCID))
                 transmit_mqtt('TWC/ampsMax/' + hex_str(self.TWCID), self.reportedAmpsMax)
+                time.sleep(2)
                 transmit_mqtt('TWC/power/' + hex_str(self.TWCID), self.reportedAmpsActual)
+                time.sleep(2)
 
 
     def receive_slave_heartbeat(self, heartbeatData):
