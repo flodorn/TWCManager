@@ -263,13 +263,11 @@ slaveSign = bytearray(b'\x77')
 
 
 def transmit_mqtt(mqttChannel, mqttPayload):
-    client = mqtt.Client(client_id="P1")
-    client.connect("192.168.1.11", 1883, 60) #connect to broker
-    #client.loop_start()
-    infot = client.publish(mqttChannel, mqttPayload) 
-    infot.wait_for_publish()
+    mqttBrokerIP = '192.168.1.11'
+    client = mqtt.Client("P1")
+    client.connect(mqttBrokerIP) #connect to broker#create new instance
+    client.publish(mqttChannel, mqttPayload) 
     client.disconnect()
-
 
 
 def time_now():
@@ -915,12 +913,7 @@ class TWCSlave:
                     
             else:
                 self.reportedAmpsActual = 0
-                self.reportedAmpsMax = 0
                 print('BUGFIX: setting self.reportedAmpsActual to 0 for TWC '+ str(newTWCID))
-                transmit_mqtt('TWC/ampsMax/' + hex_str(self.TWCID), self.reportedAmpsMax)
-                time.sleep(2)
-                transmit_mqtt('TWC/power/' + hex_str(self.TWCID), self.reportedAmpsActual)
-                time.sleep(2)
                 
         elif(newTWCID == '64 86'):
             if(stopCharge6486 == 0):
@@ -933,12 +926,7 @@ class TWCSlave:
             
             else:
                 self.reportedAmpsActual = 0
-                self.reportedAmpsMax = 0
                 print('BUGFIX: setting self.reportedAmpsActual to 0 for TWC '+ str(newTWCID))
-                transmit_mqtt('TWC/ampsMax/' + hex_str(self.TWCID), self.reportedAmpsMax)
-                time.sleep(2)
-                transmit_mqtt('TWC/power/' + hex_str(self.TWCID), self.reportedAmpsActual)
-                time.sleep(2)
 
 
     def receive_slave_heartbeat(self, heartbeatData):
